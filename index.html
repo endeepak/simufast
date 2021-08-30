@@ -1,0 +1,141 @@
+<html>
+
+<head>
+    <script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
+    <script src="https://code.createjs.com/1.0.0/tweenjs.min.js"></script>
+</head>
+
+<body onload="init();">
+    <canvas id="demoCanvas" width="500" height="300"></canvas>
+</body>
+<script>
+    async function init() {
+        var stage = new createjs.Stage("demoCanvas");
+        createjs.Ticker.framerate = 60;
+        createjs.Ticker.addEventListener("tick", stage);
+
+        const items = new createVisualArray(randIntArray(9, 10, 99));
+        items.draw(stage);
+
+        bubleSort(items);
+    }
+
+    const bubleSort = async (items) => {
+        for (let i = 0; i < items.length; i++) {
+            for (let j = 0; j < items.length - i - 1; j++) {
+                if (items[j] > items[j + 1]) {
+                    await items.swap(j, j + 1);
+                }
+            }
+        }
+    }
+
+    const randIntArray = (n, min, max) => {
+        const nums = [];
+        for (let i = 0; i < n; i++) {
+            nums[i] = randomInteger(min, max);
+        }
+        return nums;
+    }
+
+    const randomInteger = (min, max) => {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    const createVisualArray = function (array) {
+        const visualArray = new VisualArray(array);
+        return new Proxy(visualArray, {
+            get: function (target, property) {
+                return target._get_(property);
+            },
+            set: function (target, property, value) {
+                return target._set_(property, value);
+                return true;
+            }
+        });
+    }
+
+    const swap = (items, i, j) => {
+        const temp = items[i];
+        items[i] = items[j];
+        items[j] = temp;
+    }
+
+    const tweenPromise = (tween) => {
+        return new Promise((resolve) => {
+            tween.call(resolve);
+        });
+    }
+
+    /*
+        array -> set, push, pop, shift, delete?
+        rerender all or override methods? or render diff->how to track diff?
+    */
+    class VisualArray {
+        constructor(values) {
+            this.values = values || [];
+            this.container = new createjs.Container();
+            this.y = 0;
+            this.elementDisplaySize = 50;
+            this.elements = [];
+            this.nextElementX = 0;
+            for (let i = 0; i < this.values.length; i++) {
+                const element = new ArrayElement(this.values[i], this.nextElementX, this.y, this.elementDisplaySize);
+                this.elements.push(element);
+                this.nextElementX += this.elementDisplaySize;
+            }
+        }
+
+        _get_(name) {
+            if (this.__proto__.hasOwnProperty(name)) {
+                return this[name].bind(this);
+            }
+            return this.values[name];
+        }
+
+        _set_(name, value) {
+            this.values[name] = value;
+        }
+
+        async swap(i, j) {
+            swap(this.values, i, j);
+            const iContainer = this.elements[i].container;
+            const jContainer = this.elements[j].container;
+            const iPosX = iContainer.x;
+            const jPosX = jContainer.x;
+            const iPromise = tweenPromise(createjs.Tween.get(iContainer).to({ x: jPosX }, 1000, createjs.Ease.linear));
+            const jPromise = tweenPromise(createjs.Tween.get(jContainer).to({ x: iPosX }, 1000, createjs.Ease.linear));
+            swap(this.elements, i, j);
+            await Promise.all([iPromise, jPromise]);
+        }
+
+        draw(parent) {
+            for (const element of this.elements) {
+                element.draw(this.container);
+            }
+            parent.addChild(this.container);
+        }
+    }
+
+    class ArrayElement {
+        constructor(value, x, y, size) {
+            this.container = new createjs.Container();
+            this.container.x = x || 0;
+            this.container.y = y || 0;
+            this.size = size || 50;
+            this.rectangle = new createjs.Shape();
+            this.rectangle.graphics.beginStroke("black").drawRect(0, 0, this.size, this.size);
+            this.textSize = (this.size / (1.5 * value.toString().length));
+            this.text = new createjs.Text(value, `${this.textSize}px Arial`);
+            this.text.x = (this.size - this.textSize) / 2;
+            this.text.y = (this.size - this.textSize) / 2;
+            this.container.addChild(this.rectangle, this.text);
+        }
+
+        draw(parent) {
+            parent.addChild(this.container);
+        }
+    }
+</script>
+
+</html>
