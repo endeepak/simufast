@@ -17,7 +17,7 @@
         const items = new createVisualArray(randIntArray(9, 10, 99));
         items.draw(stage);
 
-        bubleSort(items);
+        selectionSort(items);
     }
 
     const bubleSort = async (items) => {
@@ -27,6 +27,18 @@
                     await items.swap(j, j + 1);
                 }
             }
+        }
+    }
+
+    const selectionSort = async (items) => {
+        for (let i = 0; i < items.length - 1; i++) {
+            let minValueIndex = i;
+            for (let j = i + 1; j < items.length; j++) {
+                if (await items.compareAtIndex(minValueIndex, j) > 0) {
+                    minValueIndex = j;
+                }
+            }
+            await items.swap(i, minValueIndex);
         }
     }
 
