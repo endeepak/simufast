@@ -23,7 +23,7 @@
     const bubleSort = async (items) => {
         for (let i = 0; i < items.length; i++) {
             for (let j = 0; j < items.length - i - 1; j++) {
-                if (items[j] > items[j + 1]) {
+                if (await items.compareAtIndex(j, j + 1) > 0) {
                     await items.swap(j, j + 1);
                 }
             }
@@ -97,6 +97,14 @@
             this.values[name] = value;
         }
 
+        async compareAtIndex(i, j) {
+            await Promise.all([
+                this.elements[i].highlight(),
+                this.elements[j].highlight()
+            ]);
+            return this.values[i] - this.values[j];
+        }
+
         async swap(i, j) {
             swap(this.values, i, j);
             const iContainer = this.elements[i].container;
@@ -124,6 +132,7 @@
             this.container.y = y || 0;
             this.size = size || 50;
             this.rectangle = new createjs.Shape();
+            this.rectangleFillCommand = this.rectangle.graphics.beginFill("white").command;
             this.rectangle.graphics.beginStroke("black").drawRect(0, 0, this.size, this.size);
             this.textSize = (this.size / (1.5 * value.toString().length));
             this.text = new createjs.Text(value, `${this.textSize}px Arial`);
@@ -134,6 +143,25 @@
 
         draw(parent) {
             parent.addChild(this.container);
+        }
+
+        async highlight() {
+            return new Promise((resolve) => {
+                var element = this;
+                element.select();
+                setTimeout(function () {
+                    element.deselect();
+                    resolve();
+                }, 1000);
+            });
+        }
+
+        select() {
+            this.rectangleFillCommand.style = "lightblue";
+        }
+
+        deselect() {
+            this.rectangleFillCommand.style = "white";
         }
     }
 </script>
