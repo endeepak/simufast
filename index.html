@@ -7,18 +7,20 @@
 
 <body onload="init();">
     <canvas id="canvas" width="500" height="300"></canvas>
-    <video controls autoplay muted id="video"></video>
+    <!-- <video controls autoplay muted id="video"></video> -->
 </body>
 <script>
     async function init() {
-        streamCanvasToVideo();
+        // streamCanvasToVideo();
         var stage = new createjs.Stage("canvas");
         createjs.Ticker.framerate = 60;
         createjs.Ticker.addEventListener("tick", stage);
 
         const items = new createVisualArray(randIntArray(9, 10, 99));
         items.draw(stage);
+        createjs.Ticker.addEventListener("tick", items);
 
+        // bubleSort(items);
         selectionSort(items);
     }
 
@@ -32,7 +34,10 @@
 
     const bubleSort = async (items) => {
         for (let i = 0; i < items.length; i++) {
+            items.trackIndex("end", () => items.length - i - 1);
             for (let j = 0; j < items.length - i - 1; j++) {
+                items.trackIndex("j", () => j);
+                items.trackIndex("j+1", () => j + 1);
                 if (await items.compareAtIndex(j, j + 1) > 0) {
                     await items.swap(j, j + 1);
                 }
@@ -42,8 +47,11 @@
 
     const selectionSort = async (items) => {
         for (let i = 0; i < items.length - 1; i++) {
+            items.trackIndex("i", () => i);
             let minValueIndex = i;
+            items.trackIndex("min", () => minValueIndex);
             for (let j = i + 1; j < items.length; j++) {
+                items.trackIndex("j", () => j);
                 if (await items.compareAtIndex(minValueIndex, j) > 0) {
                     minValueIndex = j;
                 }
@@ -99,6 +107,7 @@
             this.container = new createjs.Container();
             this.y = 0;
             this.elementDisplaySize = 50;
+            this.indexTrackerDisplaySize = 30;
             this.elements = [];
             this.nextElementX = 0;
             for (let i = 0; i < this.values.length; i++) {
@@ -106,6 +115,7 @@
                 this.elements.push(element);
                 this.nextElementX += this.elementDisplaySize;
             }
+            this.indexTrackers = {};
         }
 
         _get_(name) {
@@ -145,6 +155,44 @@
             }
             parent.addChild(this.container);
         }
+
+        trackIndex(name, valueFn) {
+            const existingTracker = this.indexTrackers[name];
+            if (existingTracker) {
+                this.indexTrackers[name] = {
+                    valueFn: valueFn,
+                    text: existingTracker.text
+                }
+            } else {
+                const value = valueFn();
+                const text = new createjs.Text(name, `${this.indexTrackerDisplaySize / 1.5}px Arial`);
+                this.container.addChild(text);
+                this.indexTrackers[name] = {
+                    valueFn: valueFn,
+                    text: text
+                }
+            }
+            this._drawIndexTrackers();
+        }
+
+        _drawIndexTrackers() {
+            const indexCount = [];
+            for (let key in this.indexTrackers) {
+                const tracker = this.indexTrackers[key];
+                const value = tracker.valueFn();
+                indexCount[value] = indexCount[value] || 0;
+                tracker.text.x = value * this.elementDisplaySize + (this.indexTrackerDisplaySize / 6);
+                tracker.text.y = this.elementDisplaySize + indexCount[value] * this.indexTrackerDisplaySize;
+                indexCount[value] += 1;
+            }
+        }
+
+        handleEvent(event) {
+            console.log(event);
+            if (event.type == "tick") {
+                this._drawIndexTrackers();
+            }
+        }
     }
 
     class ArrayElement {
@@ -170,19 +218,19 @@
         async highlight() {
             return new Promise((resolve) => {
                 var element = this;
-                element.select();
+                element._select();
                 setTimeout(function () {
-                    element.deselect();
+                    element._deselect();
                     resolve();
                 }, 1000);
             });
         }
 
-        select() {
+        _select() {
             this.rectangleFillCommand.style = "lightblue";
         }
 
-        deselect() {
+        _deselect() {
             this.rectangleFillCommand.style = "white";
         }
     }
