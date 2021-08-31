@@ -6,11 +6,13 @@
 </head>
 
 <body onload="init();">
-    <canvas id="demoCanvas" width="500" height="300"></canvas>
+    <canvas id="canvas" width="500" height="300"></canvas>
+    <video controls autoplay muted id="video"></video>
 </body>
 <script>
     async function init() {
-        var stage = new createjs.Stage("demoCanvas");
+        streamCanvasToVideo();
+        var stage = new createjs.Stage("canvas");
         createjs.Ticker.framerate = 60;
         createjs.Ticker.addEventListener("tick", stage);
 
@@ -18,6 +20,14 @@
         items.draw(stage);
 
         selectionSort(items);
+    }
+
+    const streamCanvasToVideo = () => {
+        var canvas = document.querySelector('canvas');
+        var video = document.querySelector('video');
+        var stream = canvas.captureStream(60);
+        video.srcObject = stream;
+
     }
 
     const bubleSort = async (items) => {
