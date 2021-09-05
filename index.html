@@ -152,6 +152,8 @@
 
         async _visualiseStoringKey(key, position, nodeReplica) {
             const { ringX, ringY, ringRadius } = this.visualConfig;
+            this.container.setChildIndex(nodeReplica.container, this.container.getNumChildren() - 1);
+
             const textPoint = this._getCircumferencePointAtPosition(position);
             const text = new createjs.Text(key, `${ringRadius / 10}px Arial`);
             this.container.addChild(text);
