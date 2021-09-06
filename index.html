@@ -14,10 +14,17 @@
 </style>
 
 <body onload="init();">
+    <button onclick="pause()">pause</button>
+    <button onclick="play()">play</button>
     <canvas id="canvas" width="600" height="600"></canvas>
     <!-- <video controls autoplay muted id="video"></video> -->
 </body>
 <script>
+    const playerControls = {
+        play: false,
+        speed: 1000
+    }
+
     async function init() {
         // streamCanvasToVideo();
         var stage = new createjs.Stage("canvas");
@@ -31,7 +38,41 @@
         // bubleSort(items);
         // selectionSort(items);
 
-        simulateConsitentHash(stage);
+        // simulateConsitentHash(stage);
+        simulateConsitentHashCommands(stage);
+    }
+
+    function pause() {
+        playerControls.play = false;
+    }
+
+    function play() {
+        playerControls.play = true;
+    }
+
+    const simulateConsitentHashCommands = async (stage) => {
+        const chRing = new ConsitentHashRing();
+        chRing.draw(stage);
+
+        const commands = [];
+        for (let i = 1; i <= 4; i++) {
+            commands.push(() => chRing.addNode(`N${i}`));
+        }
+        const loremIpsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Non odio euismod lacinia at quis risus sed vulputate. Ligula ullamcorper malesuada proin libero nunc consequat interdum. Sed id semper risus in hendrerit gravida rutrum quisque non. Enim eu turpis egestas pretium aenean pharetra magna ac. Scelerisque purus semper eget duis at. Vulputate odio ut enim blandit volutpat maecenas. Fames ac turpis egestas sed tempus urna et. Vitae tempus quam pellentesque nec nam. Lacus laoreet non curabitur gravida arcu. Risus viverra adipiscing at in tellus integer feugiat. Enim blandit volutpat maecenas volutpat blandit. Sit amet mattis vulputate enim nulla aliquet porttitor lacus luctus. Mattis aliquam faucibus purus in. Enim blandit volutpat maecenas volutpat blandit aliquam etiam erat";
+        for (let word of loremIpsum.split(' ')) {
+            commands.push(() => chRing.store(word, `${word} value!`));
+        }
+
+        while (commands.length > 0) {
+            if (playerControls.play) {
+                const command = commands.shift();
+                await command();
+            } else {
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+        }
+
+        console.log(chRing.getNodeStats());
     }
 
     const simulateConsitentHash = async (stage) => {
