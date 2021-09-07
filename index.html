@@ -39,43 +39,65 @@
     }
 
 
-    .simufast-player>.actions {
+    .simufast-player .control-bar {
         display: flex;
         flex-direction: row;
-        border: 1px solid black;
+        background: lightskyblue;
         padding: 15px;
     }
 
     /* align center horizontally */
-    .simufast-player>canvas {
+    .simufast-player canvas {
         display: block;
         margin-left: auto;
         margin-right: auto;
     }
 
-    .simufast-player>.last-log {
+    .simufast-player .last-log {
         height: 25px;
         margin-left: auto;
         margin-right: auto;
-        padding: 5px;
+        padding-top: 5px;
+        padding-bottom: 5px;
+        background: lightskyblue;
+        width: 100%;
+        text-align: center;
+    }
+
+    .simufast-player .speed {
+        width: 45%;
+    }
+
+    .simufast-player .actions {
+        width: 10%;
+    }
+
+    .simufast-player .progress-text {
+        width: 45%;
+        text-align: right;
     }
 </style>
 
 <body onload="init();">
     <div class="simufast-player">
-        <div class="last-log"></div>
+        <div class="last-log"> Consitent Hash demo</div>
         <canvas id="canvas" width="500" height="500"></canvas>
-        <div class="actions">
-            <label>Speed:</label>
-            <select class="speed">
-                <option value="0.25">0.25x</option>
-                <option value="0.5">0.5x</option>
-                <option value="1" selected>1x</option>
-                <option value="1.5">1.5x</option>
-                <option value="2">2x</option>
-                <option value="999999">Max</option>
-            </select>
-            <button class="play-pause">&#9658</button>
+        <div class="control-bar">
+            <span class="speed">
+                <label>Speed:</label>
+                <select class="speed-select">
+                    <option value="0.25">0.25x</option>
+                    <option value="0.5">0.5x</option>
+                    <option value="1" selected>Normal</option>
+                    <option value="2">2x</option>
+                    <option value="3">3x</option>
+                    <option value="5">5x</option>
+                    <option value="999999">Max</option>
+                </select>
+            </span>
+            <span class="actions">
+                <button class="play-pause-button">&#9658</button>
+            </span>
             <span class="progress-text">Click play to start</span>
         </div>
     </div>
@@ -117,7 +139,7 @@
 
         simulateConsitentHashCommands(stage, progresListener, log);
 
-        const playPauseButton = player.getElementsByClassName('play-pause')[0];
+        const playPauseButton = player.getElementsByClassName('play-pause-button')[0];
         playPauseButton.addEventListener('click', function () {
             if (playerControls.play) {
                 playPauseButton.innerHTML = '&#9658';
@@ -128,7 +150,7 @@
         });
 
 
-        const speedSelect = player.getElementsByClassName('speed')[0];
+        const speedSelect = player.getElementsByClassName('speed-select')[0];
         speedSelect.addEventListener('change', function () {
             playerControls.speed = Number(speedSelect.value);
         });
