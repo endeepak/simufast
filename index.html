@@ -16,6 +16,7 @@
     - Simulate module hashing, compare stats
     - Step by step execution
     - Rewind? -> Undo / Redo
+    - Change play button to restart after completion
  -->
 
 <head>
@@ -32,7 +33,7 @@
         flex-direction: column;
         background: white;
         width: 500px;
-        height: 550px;
+        height: 580px;
         margin-left: auto;
         margin-right: auto;
     }
@@ -42,7 +43,7 @@
         display: flex;
         flex-direction: row;
         border: 1px solid black;
-        padding: 13px;
+        padding: 15px;
     }
 
     /* align center horizontally */
@@ -51,10 +52,18 @@
         margin-left: auto;
         margin-right: auto;
     }
+
+    .simufast-player>.last-log {
+        height: 25px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 5px;
+    }
 </style>
 
 <body onload="init();">
     <div class="simufast-player">
+        <div class="last-log"></div>
         <canvas id="canvas" width="500" height="500"></canvas>
         <div class="actions">
             <label>Speed:</label>
@@ -83,6 +92,8 @@
         const player = document.getElementsByClassName('simufast-player')[0];
         const canvas = player.getElementsByTagName("canvas")[0];
         const progressText = player.getElementsByClassName('progress-text')[0];
+        const lastLogText = player.getElementsByClassName('last-log')[0];
+
         var stage = new createjs.Stage(canvas);
         createjs.Ticker.framerate = 60;
         createjs.Ticker.addEventListener("tick", stage);
@@ -95,9 +106,16 @@
         // selectionSort(items);
 
         // simulateConsitentHash(stage);
-        simulateConsitentHashCommands(stage, (progress) => {
+
+        const log = (text) => {
+            lastLogText.innerHTML = text;
+        }
+
+        const progresListener = (progress) => {
             progressText.innerHTML = `Completed: ${progress.completed}/${progress.total}`;
-        });
+        }
+
+        simulateConsitentHashCommands(stage, progresListener, log);
 
         const playPauseButton = player.getElementsByClassName('play-pause')[0];
         playPauseButton.addEventListener('click', function () {
@@ -124,8 +142,10 @@
         playerControls.play = true;
     }
 
-    const simulateConsitentHashCommands = async (stage, progressListener) => {
-        const chRing = new ConsitentHashRing();
+    const simulateConsitentHashCommands = async (stage, progresListener, log) => {
+        const chRing = new ConsitentHashRing({
+            log
+        });
         chRing.draw(stage);
 
         const commands = [];
@@ -142,7 +162,7 @@
             if (playerControls.play) {
                 const command = commands.shift();
                 await command();
-                progressListener({ total: totalCommands, completed: totalCommands - commands.length });
+                progresListener({ total: totalCommands, completed: totalCommands - commands.length });
             } else {
                 await new Promise(resolve => setTimeout(resolve, 300));
             }
@@ -200,13 +220,14 @@
     }
 
     class ConsitentHashRing {
-        constructor(slots) {
+        constructor(options) {
             this.config = {
                 maxSlots: 1000,
                 nodeReplcationFactor: 16,
             };
             this.nodes = [];
             this.nodeReplicas = [];
+            this.log = options.log || console.log;
 
             this.visualConfig = {
                 ringX: 250,
@@ -225,6 +246,7 @@
         }
 
         async addNode(nodeName) {
+            this.log(`Adding node: ${nodeName}`)
             const node = new ConsitentHashNode(nodeName);
             this.nodes.push(node);
             const drawPromises = [];
@@ -260,6 +282,7 @@
         }
 
         async store(key, value) {
+            this.log(`Storing key: ${key}`);
             const position = this._getPosition(key);
             const nodeReplica = this._getNodeReplicaNextTo(position);
             nodeReplica.node.store(key, value);
