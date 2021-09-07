@@ -1,4 +1,22 @@
 <html>
+<!--
+    Backlog:
+    - Progressbar in play control: Ex: 23/246 [Done]
+    - Current command text: above play control? collapsible?
+    - No global state, global selectors
+    - Embeddable JS control
+    - Embeddable script like github gist
+    - CDN build for simufast. Build npm module
+    - Embeddable script builder
+    - Vibrant colors
+    - Better stylig
+    - Create random word function, from limited set, use just n nodes, k words
+    - Simulate remove Node
+    - Show cache hits
+    - Simulate module hashing, compare stats
+    - Step by step execution
+    - Rewind? -> Undo / Redo
+ -->
 
 <head>
     <script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
@@ -8,6 +26,7 @@
     body {
         background-color: aquamarine;
     }
+
     .simufast-player {
         display: flex;
         flex-direction: column;
@@ -48,6 +67,7 @@
                 <option value="999999">Max</option>
             </select>
             <button class="play-pause">&#9658</button>
+            <span class="progress-text">Click play to start</span>
         </div>
     </div>
     <!-- <video controls autoplay muted id="video"></video> -->
@@ -60,7 +80,10 @@
 
     async function init() {
         // streamCanvasToVideo();
-        var stage = new createjs.Stage("canvas");
+        const player = document.getElementsByClassName('simufast-player')[0];
+        const canvas = player.getElementsByTagName("canvas")[0];
+        const progressText = player.getElementsByClassName('progress-text')[0];
+        var stage = new createjs.Stage(canvas);
         createjs.Ticker.framerate = 60;
         createjs.Ticker.addEventListener("tick", stage);
 
@@ -72,9 +95,11 @@
         // selectionSort(items);
 
         // simulateConsitentHash(stage);
-        simulateConsitentHashCommands(stage);
+        simulateConsitentHashCommands(stage, (progress) => {
+            progressText.innerHTML = `Completed: ${progress.completed}/${progress.total}`;
+        });
 
-        const playPauseButton = document.getElementsByClassName('play-pause')[0];
+        const playPauseButton = player.getElementsByClassName('play-pause')[0];
         playPauseButton.addEventListener('click', function () {
             if (playerControls.play) {
                 playPauseButton.innerHTML = '&#9658';
@@ -85,8 +110,8 @@
         });
 
 
-        const speedSelect = document.getElementsByClassName('speed')[0];
-        speedSelect.addEventListener('change', function() {
+        const speedSelect = player.getElementsByClassName('speed')[0];
+        speedSelect.addEventListener('change', function () {
             playerControls.speed = Number(speedSelect.value);
         });
     }
@@ -99,7 +124,7 @@
         playerControls.play = true;
     }
 
-    const simulateConsitentHashCommands = async (stage) => {
+    const simulateConsitentHashCommands = async (stage, progressListener) => {
         const chRing = new ConsitentHashRing();
         chRing.draw(stage);
 
@@ -112,10 +137,12 @@
             commands.push(() => chRing.store(word, `${word} value!`));
         }
 
+        const totalCommands = commands.length;
         while (commands.length > 0) {
             if (playerControls.play) {
                 const command = commands.shift();
                 await command();
+                progressListener({ total: totalCommands, completed: totalCommands - commands.length });
             } else {
                 await new Promise(resolve => setTimeout(resolve, 300));
             }
