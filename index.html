@@ -5,8 +5,29 @@
     <script src="https://code.createjs.com/1.0.0/tweenjs.min.js"></script>
 </head>
 <style>
+    body {
+        background-color: aquamarine;
+    }
+    .simufast-player {
+        display: flex;
+        flex-direction: column;
+        background: white;
+        width: 500px;
+        height: 550px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+
+    .simufast-player>.actions {
+        display: flex;
+        flex-direction: row;
+        border: 1px solid black;
+        padding: 13px;
+    }
+
     /* align center horizontally */
-    canvas {
+    .simufast-player>canvas {
         display: block;
         margin-left: auto;
         margin-right: auto;
@@ -14,15 +35,27 @@
 </style>
 
 <body onload="init();">
-    <button onclick="pause()">pause</button>
-    <button onclick="play()">play</button>
-    <canvas id="canvas" width="600" height="600"></canvas>
+    <div class="simufast-player">
+        <canvas id="canvas" width="500" height="500"></canvas>
+        <div class="actions">
+            <label>Speed:</label>
+            <select class="speed">
+                <option value="0.25">0.25x</option>
+                <option value="0.5">0.5x</option>
+                <option value="1" selected>1x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2x</option>
+                <option value="999999">Max</option>
+            </select>
+            <button class="play-pause">&#9658</button>
+        </div>
+    </div>
     <!-- <video controls autoplay muted id="video"></video> -->
 </body>
 <script>
     const playerControls = {
         play: false,
-        speed: 1000
+        speed: 1
     }
 
     async function init() {
@@ -40,6 +73,22 @@
 
         // simulateConsitentHash(stage);
         simulateConsitentHashCommands(stage);
+
+        const playPauseButton = document.getElementsByClassName('play-pause')[0];
+        playPauseButton.addEventListener('click', function () {
+            if (playerControls.play) {
+                playPauseButton.innerHTML = '&#9658';
+            } else {
+                playPauseButton.innerHTML = '&#9616;&#9616';
+            }
+            playerControls.play = !playerControls.play;
+        });
+
+
+        const speedSelect = document.getElementsByClassName('speed')[0];
+        speedSelect.addEventListener('change', function() {
+            playerControls.speed = Number(speedSelect.value);
+        });
     }
 
     function pause() {
@@ -133,9 +182,9 @@
             this.nodeReplicas = [];
 
             this.visualConfig = {
-                ringX: 300,
-                ringY: 300,
-                ringRadius: 250
+                ringX: 250,
+                ringY: 250,
+                ringRadius: 200
             }
             this._initVisual();
         }
@@ -201,7 +250,7 @@
             await Promise.all([
                 tweenPromise(createjs.Tween.get(text)
                     // .to({ x: textPoint.x, y: textPoint.y }, 1000 * 0, createjs.Ease.linear)
-                    .to({ x: nodeReplica.visualConfig.x, y: nodeReplica.visualConfig.y }, 1000 * 1, createjs.Ease.linear)),
+                    .to({ x: nodeReplica.visualConfig.x, y: nodeReplica.visualConfig.y }, 1000 / playerControls.speed, createjs.Ease.linear)),
                 nodeReplica.highlight()
             ])
             this.container.removeChild(text);
@@ -257,14 +306,14 @@
 
         async highlight() {
             await tweenPromise(createjs.Tween.get(this.container)
-                .to({ scaleX: 1.5, scaleY: 1.5 }, 1000, createjs.Ease.linear)
-                .to({ scaleX: 1.0, scaleY: 1.0 }, 1000, createjs.Ease.linear));
+                .to({ scaleX: 1.5, scaleY: 1.5 }, 1000 / playerControls.speed, createjs.Ease.linear)
+                .to({ scaleX: 1.0, scaleY: 1.0 }, 1000 / playerControls.speed, createjs.Ease.linear));
         }
 
         async draw(parent) {
             parent.addChild(this.container);
             const { x, y, radius } = this.visualConfig;
-            await tweenPromise(createjs.Tween.get(this.container).to({ x: x, y: y }, 1000, createjs.Ease.linear));
+            await tweenPromise(createjs.Tween.get(this.container).to({ x: x, y: y }, 1000 / playerControls.speed, createjs.Ease.linear));
         }
     }
 
