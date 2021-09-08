@@ -1,0 +1,47 @@
+.simufast-player {
+    display: flex;
+    flex-direction: column;
+    background: white;
+    width: 500px;
+    height: 580px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.simufast-player .control-bar {
+    display: flex;
+    flex-direction: row;
+    background: lightskyblue;
+    padding: 15px;
+}
+
+/* align center horizontally */
+.simufast-player canvas {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.simufast-player .last-log {
+    height: 25px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    background: lightskyblue;
+    width: 100%;
+    text-align: center;
+}
+
+.simufast-player .speed {
+    width: 45%;
+}
+
+.simufast-player .actions {
+    width: 10%;
+}
+
+.simufast-player .progress-text {
+    width: 45%;
+    text-align: right;
+}
