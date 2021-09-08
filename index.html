@@ -20,6 +20,7 @@
  -->
 
 <head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
     <script src="https://code.createjs.com/1.0.0/tweenjs.min.js"></script>
 </head>
@@ -96,7 +97,7 @@
                 </select>
             </span>
             <span class="actions">
-                <button class="play-pause-button">&#9658</button>
+                <button class="play-pause-button fa fa-play"></button>
             </span>
             <span class="progress-text">Click play to start</span>
         </div>
@@ -108,6 +109,8 @@
         play: false,
         speed: 1
     }
+
+    const randomWords = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Non odio euismod lacinia at quis risus sed vulputate. Ligula ullamcorper malesuada proin libero nunc consequat interdum. Sed id semper risus in hendrerit gravida rutrum quisque non. Enim eu turpis egestas pretium aenean pharetra magna ac. Scelerisque purus semper eget duis at. Vulputate odio ut enim blandit volutpat maecenas. Fames ac turpis egestas sed tempus urna et. Vitae tempus quam pellentesque nec nam. Lacus laoreet non curabitur gravida arcu. Risus viverra adipiscing at in tellus integer feugiat. Enim blandit volutpat maecenas volutpat blandit. Sit amet mattis vulputate enim nulla aliquet porttitor lacus luctus. Mattis aliquam faucibus purus in. Enim blandit volutpat maecenas volutpat blandit aliquam etiam erat".replaceAll('.','').replaceAll(',','').split(' ');
 
     async function init() {
         // streamCanvasToVideo();
@@ -142,9 +145,9 @@
         const playPauseButton = player.getElementsByClassName('play-pause-button')[0];
         playPauseButton.addEventListener('click', function () {
             if (playerControls.play) {
-                playPauseButton.innerHTML = '&#9658';
+                playPauseButton.classList.replace('fa-pause', 'fa-play');
             } else {
-                playPauseButton.innerHTML = '&#9616;&#9616';
+                playPauseButton.classList.replace('fa-play', 'fa-pause');
             }
             playerControls.play = !playerControls.play;
         });
@@ -174,8 +177,7 @@
         for (let i = 1; i <= 4; i++) {
             commands.push(() => chRing.addNode(`N${i}`));
         }
-        const loremIpsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Non odio euismod lacinia at quis risus sed vulputate. Ligula ullamcorper malesuada proin libero nunc consequat interdum. Sed id semper risus in hendrerit gravida rutrum quisque non. Enim eu turpis egestas pretium aenean pharetra magna ac. Scelerisque purus semper eget duis at. Vulputate odio ut enim blandit volutpat maecenas. Fames ac turpis egestas sed tempus urna et. Vitae tempus quam pellentesque nec nam. Lacus laoreet non curabitur gravida arcu. Risus viverra adipiscing at in tellus integer feugiat. Enim blandit volutpat maecenas volutpat blandit. Sit amet mattis vulputate enim nulla aliquet porttitor lacus luctus. Mattis aliquam faucibus purus in. Enim blandit volutpat maecenas volutpat blandit aliquam etiam erat";
-        for (let word of loremIpsum.split(' ')) {
+        for (let word of randomWords) {
             commands.push(() => chRing.store(word, `${word} value!`));
         }
 
@@ -199,8 +201,7 @@
         for (let i = 1; i <= 4; i++) {
             await chRing.addNode(`N${i}`);
         }
-        const loremIpsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Non odio euismod lacinia at quis risus sed vulputate. Ligula ullamcorper malesuada proin libero nunc consequat interdum. Sed id semper risus in hendrerit gravida rutrum quisque non. Enim eu turpis egestas pretium aenean pharetra magna ac. Scelerisque purus semper eget duis at. Vulputate odio ut enim blandit volutpat maecenas. Fames ac turpis egestas sed tempus urna et. Vitae tempus quam pellentesque nec nam. Lacus laoreet non curabitur gravida arcu. Risus viverra adipiscing at in tellus integer feugiat. Enim blandit volutpat maecenas volutpat blandit. Sit amet mattis vulputate enim nulla aliquet porttitor lacus luctus. Mattis aliquam faucibus purus in. Enim blandit volutpat maecenas volutpat blandit aliquam etiam erat";
-        for (let word of loremIpsum.split(' ')) {
+        for (let word of randomWords) {
             await chRing.store(word, `${word} value!`);
         }
         console.log(chRing.getNodeStats());
@@ -263,7 +264,7 @@
             const { ringX, ringY, ringRadius } = this.visualConfig;
             this.container = new createjs.Container();
             const ring = new createjs.Shape();
-            ring.graphics.setStrokeStyle(1).beginStroke("blue").drawCircle(ringX, ringY, ringRadius);
+            ring.graphics.setStrokeStyle(4).beginStroke("#66a841").drawCircle(ringX, ringY, ringRadius);
             this.container.addChild(ring);
         }
 
@@ -371,8 +372,8 @@
             this.container.addChild(circle);
 
             const text = new createjs.Text(nodeName, `${radius}px Arial`);
-            text.x = -radius / 2;
-            text.y = -radius / 2;
+            text.textAlign = 'center';
+            text.textBaseline = 'middle';
             this.container.addChild(text);
         }
 
