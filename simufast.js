@@ -1,30 +1,17 @@
 /**
 Backlog:
-    - Embeddable JS control
+    - Speed control and play-pause handling for sorting
+    - Simulate remove Node
+    - Show cache hits
+    - Change play button to restart after completion
     - Embeddable script like github gist
     - CDN build for simufast. Build npm module
     - Embeddable script builder : https://codemirror.net/
     - Create random word function, from limited set, use just n nodes, k words
-    - Simulate remove Node
-    - Show cache hits
-    - Change play button to restart after completion
     - Simulate module hashing, compare stats
     - Step by step execution
     - Rewind? -> Undo / Redo
 */
-
-
-
-async function init() {
-    // const items = new createVisualArray(randIntArray(9, 10, 99));
-    // items.draw(stage);
-    // createjs.Ticker.addEventListener("tick", items);
-
-    // bubleSort(items);
-    // selectionSort(items);
-
-    consitentHashDemo1();
-}
 
 class SimufastPlayer {
     constructor() {
@@ -48,7 +35,7 @@ class SimufastPlayer {
     _renderDOM() {
         const dom = `
             <div class="simufast-player">
-                <div class="last-log">Consitent Hash Demo</div>
+                <div class="last-log"></div>
                 <canvas id="canvas" width="500" height="500"></canvas>
                 <div class="control-bar">
                     <span class="speed">
@@ -66,7 +53,10 @@ class SimufastPlayer {
                     <span class="actions">
                         <button class="play-pause-button fa fa-play"></button>
                     </span>
-                    <span class="progress-text"></span>
+                    <span class="progress">
+                        <span class="progress-text"></span>
+                        <i style="display: none;" class="spinner fa fa-spinner fa-spin"></i>
+                    </span>
                 </div>
             </div>
         `;
@@ -80,6 +70,7 @@ class SimufastPlayer {
         this._canvas = player.getElementsByTagName("canvas")[0];
         this._stage = new createjs.Stage(this._canvas);
         this._playPauseButton = player.getElementsByClassName('play-pause-button')[0];
+        this._spinner = player.getElementsByClassName('spinner')[0];
         this._speedSelect = player.getElementsByClassName('speed-select')[0];
 
         createjs.Ticker.framerate = 60;
@@ -99,14 +90,25 @@ class SimufastPlayer {
         });
     }
 
-    async experiment(drawable, commands) {
+    _showSpinner() {
+        this._spinner.style.display = '';
+    }
+
+    _hideSpinner() {
+        this._spinner.style.display = 'none';
+    }
+
+    async experiment({ name, drawable, commands }) {
+        this.log(name);
         drawable.draw(this._stage);
         const totalCommands = commands.length;
         while (commands.length > 0) {
             if (this._play) {
                 const command = commands.shift();
+                // this._showSpinner();
                 await command();
                 this.updateProgress({ total: totalCommands, completed: totalCommands - commands.length });
+                // this._hideSpinner();
             } else {
                 await new Promise(resolve => setTimeout(resolve, 300));
             }
@@ -128,8 +130,32 @@ async function consitentHashDemo1() {
     for (let word of randomWords) {
         commands.push(() => chRing.store(word, word));
     }
-    await player.experiment(chRing, commands);
+    await player.experiment({
+        name: 'Consistent Hash',
+        drawable: chRing,
+        commands: commands
+    });
     console.log(chRing.getNodeStats());
+}
+
+async function bubleSortDemo() {
+    const player = new SimufastPlayer();
+    const items = new createVisualArray(randIntArray(9, 10, 99));
+    await player.experiment({
+        name: 'Buble Sort',
+        drawable: items,
+        commands: [() => bubleSort(items)]
+    });
+}
+
+async function selectionSortDemo() {
+    const player = new SimufastPlayer();
+    const items = new createVisualArray(randIntArray(9, 10, 99));
+    await player.experiment({
+        name: 'Selection Sort',
+        drawable: items,
+        commands: [() => selectionSort(items)]
+    });
 }
 
 // https://gist.github.com/0x263b/2bdd90886c2036a1ad5bcf06d6e6fb37
