@@ -14,76 +14,6 @@ Backlog:
 */
 
 
-const randomWords = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Non odio euismod lacinia at quis risus sed vulputate. Ligula ullamcorper malesuada proin libero nunc consequat interdum. Sed id semper risus in hendrerit gravida rutrum quisque non. Enim eu turpis egestas pretium aenean pharetra magna ac. Scelerisque purus semper eget duis at. Vulputate odio ut enim blandit volutpat maecenas. Fames ac turpis egestas sed tempus urna et. Vitae tempus quam pellentesque nec nam. Lacus laoreet non curabitur gravida arcu. Risus viverra adipiscing at in tellus integer feugiat. Enim blandit volutpat maecenas volutpat blandit. Sit amet mattis vulputate enim nulla aliquet porttitor lacus luctus. Mattis aliquam faucibus purus in. Enim blandit volutpat maecenas volutpat blandit aliquam etiam erat".replaceAll('.', '').replaceAll(',', '').split(' ');
-
-const dom = `
-        <div class="simufast-player">
-            <div class="last-log">Consitent Hash Demo</div>
-            <canvas id="canvas" width="500" height="500"></canvas>
-            <div class="control-bar">
-                <span class="speed">
-                    <label>Speed:</label>
-                    <select class="speed-select">
-                        <option value="0.25">0.25x</option>
-                        <option value="0.5">0.5x</option>
-                        <option value="1" selected>Normal</option>
-                        <option value="2">2x</option>
-                        <option value="3">3x</option>
-                        <option value="5">5x</option>
-                        <option value="999999">Max</option>
-                    </select>
-                </span>
-                <span class="actions">
-                    <button class="play-pause-button fa fa-play"></button>
-                </span>
-                <span class="progress-text"></span>
-            </div>
-        </div>
-    `;
-
-const createPlayer = (simulation) => {
-    const player = document.createElement('div');
-    document.body.appendChild(player);
-    player.innerHTML = dom;
-
-    const canvas = player.getElementsByTagName("canvas")[0];
-    const progressText = player.getElementsByClassName('progress-text')[0];
-    const lastLogText = player.getElementsByClassName('last-log')[0];
-
-    var stage = new createjs.Stage(canvas);
-    createjs.Ticker.framerate = 60;
-    createjs.Ticker.addEventListener("tick", stage);
-
-    const playerControls = {
-        play: false,
-        speed: 1
-    }
-
-    const log = (text) => {
-        lastLogText.innerHTML = text;
-    }
-
-    const progresListener = (progress) => {
-        progressText.innerHTML = `Completed: ${progress.completed}/${progress.total}`;
-    }
-
-    const playPauseButton = player.getElementsByClassName('play-pause-button')[0];
-    playPauseButton.addEventListener('click', function () {
-        if (playerControls.play) {
-            playPauseButton.classList.replace('fa-pause', 'fa-play');
-        } else {
-            playPauseButton.classList.replace('fa-play', 'fa-pause');
-        }
-        playerControls.play = !playerControls.play;
-    });
-
-    const speedSelect = player.getElementsByClassName('speed-select')[0];
-    speedSelect.addEventListener('change', function () {
-        playerControls.speed = Number(speedSelect.value);
-    });
-
-    simulation(stage, playerControls, progresListener, log);
-}
 
 async function init() {
     // const items = new createVisualArray(randIntArray(9, 10, 99));
@@ -93,49 +23,112 @@ async function init() {
     // bubleSort(items);
     // selectionSort(items);
 
-    createPlayer((stage, playerControls, progresListener, log) => {
-        simulateConsitentHashCommands(stage, playerControls, progresListener, log);
-    });
+    consitentHashDemo1();
 }
 
-const simulateConsitentHashCommands = async (stage, playerControls, progresListener, log) => {
-    const chRing = new ConsitentHashRing({
-        speedFn: () => playerControls.speed,
-        log: log
-    });
-    chRing.draw(stage);
+class SimufastPlayer {
+    constructor() {
+        this._play = false;
+        this._speed = 1;
+        this._renderDOM();
+    }
 
+    getSpeed() {
+        return this._speed;
+    }
+
+    log(text) {
+        this._lastLogText.innerHTML = text;
+    }
+
+    updateProgress(progress) {
+        this._progressText.innerHTML = `Completed: ${progress.completed}/${progress.total}`;
+    }
+
+    _renderDOM() {
+        const dom = `
+            <div class="simufast-player">
+                <div class="last-log">Consitent Hash Demo</div>
+                <canvas id="canvas" width="500" height="500"></canvas>
+                <div class="control-bar">
+                    <span class="speed">
+                        <label>Speed:</label>
+                        <select class="speed-select">
+                            <option value="0.25">0.25x</option>
+                            <option value="0.5">0.5x</option>
+                            <option value="1" selected>Normal</option>
+                            <option value="2">2x</option>
+                            <option value="3">3x</option>
+                            <option value="5">5x</option>
+                            <option value="999999">Max</option>
+                        </select>
+                    </span>
+                    <span class="actions">
+                        <button class="play-pause-button fa fa-play"></button>
+                    </span>
+                    <span class="progress-text"></span>
+                </div>
+            </div>
+        `;
+
+        const player = document.createElement('div');
+        document.body.appendChild(player);
+        player.innerHTML = dom;
+
+        this._progressText = player.getElementsByClassName('progress-text')[0];
+        this._lastLogText = player.getElementsByClassName('last-log')[0];
+        this._canvas = player.getElementsByTagName("canvas")[0];
+        this._stage = new createjs.Stage(this._canvas);
+        this._playPauseButton = player.getElementsByClassName('play-pause-button')[0];
+        this._speedSelect = player.getElementsByClassName('speed-select')[0];
+
+        createjs.Ticker.framerate = 60;
+        createjs.Ticker.addEventListener("tick", this._stage);
+
+        this._playPauseButton.addEventListener('click', () => {
+            if (this._play) {
+                this._playPauseButton.classList.replace('fa-pause', 'fa-play');
+            } else {
+                this._playPauseButton.classList.replace('fa-play', 'fa-pause');
+            }
+            this._play = !this._play;
+        });
+
+        this._speedSelect.addEventListener('change', () => {
+            this._speed = Number(this._speedSelect.value);
+        });
+    }
+
+    async experiment(drawable, commands) {
+        drawable.draw(this._stage);
+        const totalCommands = commands.length;
+        while (commands.length > 0) {
+            if (this._play) {
+                const command = commands.shift();
+                await command();
+                this.updateProgress({ total: totalCommands, completed: totalCommands - commands.length });
+            } else {
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+        }
+    }
+}
+
+async function consitentHashDemo1() {
+    const randomWords = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Non odio euismod lacinia at quis risus sed vulputate. Ligula ullamcorper malesuada proin libero nunc consequat interdum. Sed id semper risus in hendrerit gravida rutrum quisque non. Enim eu turpis egestas pretium aenean pharetra magna ac. Scelerisque purus semper eget duis at. Vulputate odio ut enim blandit volutpat maecenas. Fames ac turpis egestas sed tempus urna et. Vitae tempus quam pellentesque nec nam. Lacus laoreet non curabitur gravida arcu. Risus viverra adipiscing at in tellus integer feugiat. Enim blandit volutpat maecenas volutpat blandit. Sit amet mattis vulputate enim nulla aliquet porttitor lacus luctus. Mattis aliquam faucibus purus in. Enim blandit volutpat maecenas volutpat blandit aliquam etiam erat".replaceAll('.', '').replaceAll(',', '').split(' ');
+    const player = new SimufastPlayer();
+    const chRing = new ConsitentHashRing({
+        speedFn: () => player.getSpeed(),
+        log: (text) => player.log(text)
+    });
     const commands = [];
     for (let i = 1; i <= 4; i++) {
         commands.push(() => chRing.addNode(`N${i}`));
     }
     for (let word of randomWords) {
-        commands.push(() => chRing.store(word, `${word} value!`));
+        commands.push(() => chRing.store(word, word));
     }
-
-    const totalCommands = commands.length;
-    while (commands.length > 0) {
-        if (playerControls.play) {
-            const command = commands.shift();
-            await command();
-            progresListener({ total: totalCommands, completed: totalCommands - commands.length });
-        } else {
-            await new Promise(resolve => setTimeout(resolve, 300));
-        }
-    }
-
-    console.log(chRing.getNodeStats());
-}
-
-const simulateConsitentHash = async (stage) => {
-    const chRing = new ConsitentHashRing();
-    chRing.draw(stage);
-    for (let i = 1; i <= 4; i++) {
-        await chRing.addNode(`N${i}`);
-    }
-    for (let word of randomWords) {
-        await chRing.store(word, `${word} value!`);
-    }
+    await player.experiment(chRing, commands);
     console.log(chRing.getNodeStats());
 }
 
