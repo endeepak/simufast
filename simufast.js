@@ -1,14 +1,24 @@
+/**
+Backlog:
+    - Embeddable JS control
+    - Embeddable script like github gist
+    - CDN build for simufast. Build npm module
+    - Embeddable script builder : https://codemirror.net/
+    - Create random word function, from limited set, use just n nodes, k words
+    - Simulate remove Node
+    - Show cache hits
+    - Change play button to restart after completion
+    - Simulate module hashing, compare stats
+    - Step by step execution
+    - Rewind? -> Undo / Redo
+*/
 
-const playerControls = {
-    play: false,
-    speed: 1
-}
 
 const randomWords = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Non odio euismod lacinia at quis risus sed vulputate. Ligula ullamcorper malesuada proin libero nunc consequat interdum. Sed id semper risus in hendrerit gravida rutrum quisque non. Enim eu turpis egestas pretium aenean pharetra magna ac. Scelerisque purus semper eget duis at. Vulputate odio ut enim blandit volutpat maecenas. Fames ac turpis egestas sed tempus urna et. Vitae tempus quam pellentesque nec nam. Lacus laoreet non curabitur gravida arcu. Risus viverra adipiscing at in tellus integer feugiat. Enim blandit volutpat maecenas volutpat blandit. Sit amet mattis vulputate enim nulla aliquet porttitor lacus luctus. Mattis aliquam faucibus purus in. Enim blandit volutpat maecenas volutpat blandit aliquam etiam erat".replaceAll('.', '').replaceAll(',', '').split(' ');
 
 const dom = `
         <div class="simufast-player">
-            <div class="last-log"> Consitent Hash demo</div>
+            <div class="last-log">Consitent Hash Demo</div>
             <canvas id="canvas" width="500" height="500"></canvas>
             <div class="control-bar">
                 <span class="speed">
@@ -26,15 +36,16 @@ const dom = `
                 <span class="actions">
                     <button class="play-pause-button fa fa-play"></button>
                 </span>
-                <span class="progress-text">Click play to start</span>
+                <span class="progress-text"></span>
             </div>
         </div>
     `;
 
-async function init() {
-    document.write(dom);
+const createPlayer = (simulation) => {
+    const player = document.createElement('div');
+    document.body.appendChild(player);
+    player.innerHTML = dom;
 
-    const player = document.getElementsByClassName('simufast-player')[0];
     const canvas = player.getElementsByTagName("canvas")[0];
     const progressText = player.getElementsByClassName('progress-text')[0];
     const lastLogText = player.getElementsByClassName('last-log')[0];
@@ -43,14 +54,10 @@ async function init() {
     createjs.Ticker.framerate = 60;
     createjs.Ticker.addEventListener("tick", stage);
 
-    // const items = new createVisualArray(randIntArray(9, 10, 99));
-    // items.draw(stage);
-    // createjs.Ticker.addEventListener("tick", items);
-
-    // bubleSort(items);
-    // selectionSort(items);
-
-    // simulateConsitentHash(stage);
+    const playerControls = {
+        play: false,
+        speed: 1
+    }
 
     const log = (text) => {
         lastLogText.innerHTML = text;
@@ -59,8 +66,6 @@ async function init() {
     const progresListener = (progress) => {
         progressText.innerHTML = `Completed: ${progress.completed}/${progress.total}`;
     }
-
-    simulateConsitentHashCommands(stage, progresListener, log);
 
     const playPauseButton = player.getElementsByClassName('play-pause-button')[0];
     playPauseButton.addEventListener('click', function () {
@@ -72,24 +77,31 @@ async function init() {
         playerControls.play = !playerControls.play;
     });
 
-
     const speedSelect = player.getElementsByClassName('speed-select')[0];
     speedSelect.addEventListener('change', function () {
         playerControls.speed = Number(speedSelect.value);
     });
+
+    simulation(stage, playerControls, progresListener, log);
 }
 
-function pause() {
-    playerControls.play = false;
+async function init() {
+    // const items = new createVisualArray(randIntArray(9, 10, 99));
+    // items.draw(stage);
+    // createjs.Ticker.addEventListener("tick", items);
+
+    // bubleSort(items);
+    // selectionSort(items);
+
+    createPlayer((stage, playerControls, progresListener, log) => {
+        simulateConsitentHashCommands(stage, playerControls, progresListener, log);
+    });
 }
 
-function play() {
-    playerControls.play = true;
-}
-
-const simulateConsitentHashCommands = async (stage, progresListener, log) => {
+const simulateConsitentHashCommands = async (stage, playerControls, progresListener, log) => {
     const chRing = new ConsitentHashRing({
-        log
+        speedFn: () => playerControls.speed,
+        log: log
     });
     chRing.draw(stage);
 
@@ -163,6 +175,7 @@ class ConsitentHashRing {
         this.nodes = [];
         this.nodeReplicas = [];
         this.log = options.log || console.log;
+        this.speedFn = options.speedFn || (() => 1);
 
         this.visualConfig = {
             ringX: 250,
@@ -192,7 +205,8 @@ class ConsitentHashRing {
             const nodeReplica = new ConsitentHashNodeReplica(node, position, {
                 x: point.x,
                 y: point.y,
-                radius: this.visualConfig.ringRadius / 10
+                radius: this.visualConfig.ringRadius / 10,
+                speedFn: this.speedFn
             });
             this.nodeReplicas.push(nodeReplica);
             drawPromises.push(nodeReplica.draw(this.container));
@@ -227,7 +241,7 @@ class ConsitentHashRing {
 
     async _visualiseStoringKey(key, position, nodeReplica) {
         const { ringX, ringY, ringRadius } = this.visualConfig;
-        this.container.setChildIndex(nodeReplica.container, this.container.getNumChildren() - 1);
+        this.container.setChildIndex(nodeReplica.container, this.container.numChildren - 1);
 
         const textPoint = this._getCircumferencePointAtPosition(position);
         const text = new createjs.Text(key, `${ringRadius / 10}px Arial`);
@@ -235,7 +249,7 @@ class ConsitentHashRing {
         await Promise.all([
             tweenPromise(createjs.Tween.get(text)
                 // .to({ x: textPoint.x, y: textPoint.y }, 1000 * 0, createjs.Ease.linear)
-                .to({ x: nodeReplica.visualConfig.x, y: nodeReplica.visualConfig.y }, 1000 / playerControls.speed, createjs.Ease.linear)),
+                .to({ x: nodeReplica.visualConfig.x, y: nodeReplica.visualConfig.y }, 1000 / this.speedFn(), createjs.Ease.linear)),
             nodeReplica.highlight()
         ])
         this.container.removeChild(text);
@@ -271,6 +285,7 @@ class ConsitentHashNodeReplica {
         this.node = node;
         this.position = position;
         this.visualConfig = visualConfig;
+        this.speedFn = visualConfig.speedFn;
         this._createVisual();
     }
 
@@ -291,14 +306,14 @@ class ConsitentHashNodeReplica {
 
     async highlight() {
         await tweenPromise(createjs.Tween.get(this.container)
-            .to({ scaleX: 1.5, scaleY: 1.5 }, 1000 / playerControls.speed, createjs.Ease.linear)
-            .to({ scaleX: 1.0, scaleY: 1.0 }, 1000 / playerControls.speed, createjs.Ease.linear));
+            .to({ scaleX: 1.5, scaleY: 1.5 }, 1000 / this.speedFn(), createjs.Ease.linear)
+            .to({ scaleX: 1.0, scaleY: 1.0 }, 1000 / this.speedFn(), createjs.Ease.linear));
     }
 
     async draw(parent) {
         parent.addChild(this.container);
         const { x, y, radius } = this.visualConfig;
-        await tweenPromise(createjs.Tween.get(this.container).to({ x: x, y: y }, 1000 / playerControls.speed, createjs.Ease.linear));
+        await tweenPromise(createjs.Tween.get(this.container).to({ x: x, y: y }, 1000 / this.speedFn(), createjs.Ease.linear));
     }
 }
 
@@ -385,9 +400,7 @@ const swap = (items, i, j) => {
 }
 
 const tweenPromise = (tween) => {
-    return new Promise((resolve) => {
-        tween.call(resolve);
-    });
+    return new Promise((resolve) => tween.call(resolve));
 }
 
 /*

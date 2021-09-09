@@ -1,23 +1,4 @@
 <html>
-<!--
-    Backlog:
-    - Progressbar in play control: Ex: 23/246 [Done]
-    - Current command text: above play control? collapsible?
-    - No global state, global selectors
-    - Embeddable JS control
-    - Embeddable script like github gist
-    - CDN build for simufast. Build npm module
-    - Embeddable script builder
-    - Vibrant colors
-    - Better stylig
-    - Create random word function, from limited set, use just n nodes, k words
-    - Simulate remove Node
-    - Show cache hits
-    - Simulate module hashing, compare stats
-    - Step by step execution
-    - Rewind? -> Undo / Redo
-    - Change play button to restart after completion
- -->
 
 <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
@@ -32,21 +13,28 @@
     body {
         background-color: dodgerblue;
     }
+
+    body>p {
+        text-align: center;
+    }
 </style>
 
 <body>
+    <p>Simufast demo</p>
+    <script>init();</script>
+    <p>Another one</p>
+    <script>init();</script>
+    <p>Learn by simulating</p>
     <!-- <video controls autoplay muted id="video"></video> -->
 </body>
 <script>
-    init();
-
+    // Experiment
     const streamCanvasToVideo = () => {
         var canvas = document.querySelector('canvas');
         var video = document.querySelector('video');
         var stream = canvas.captureStream(60);
         video.srcObject = stream;
     }
-
     // streamCanvasToVideo();
 </script>
 
