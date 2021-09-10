@@ -1,6 +1,5 @@
 /**
 Backlog:
-    - Speed control and play-pause handling for sorting
     - Simulate remove Node
     - Show cache hits
     - Change play button to restart after completion
@@ -98,20 +97,24 @@ class SimufastPlayer {
         this._spinner.style.display = 'none';
     }
 
+    async _pauseIfRequired() {
+        while (!this._play) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+        }
+    }
+
     async experiment({ name, drawable, commands }) {
         this.log(name);
         drawable.draw(this._stage);
         const totalCommands = commands.length;
+        await this._pauseIfRequired();
         while (commands.length > 0) {
-            if (this._play) {
-                const command = commands.shift();
-                // this._showSpinner();
-                await command();
-                this.updateProgress({ total: totalCommands, completed: totalCommands - commands.length });
-                // this._hideSpinner();
-            } else {
-                await new Promise(resolve => setTimeout(resolve, 300));
-            }
+            const command = commands.shift();
+            await command({
+                pauseIfRequired: this._pauseIfRequired.bind(this)
+            });
+            this.updateProgress({ total: totalCommands, completed: totalCommands - commands.length });
+            await this._pauseIfRequired();
         }
     }
 }
@@ -140,21 +143,27 @@ async function consitentHashDemo1() {
 
 async function bubleSortDemo() {
     const player = new SimufastPlayer();
-    const items = new createVisualArray(randIntArray(9, 10, 99));
+    const items = new createVisualArray(randIntArray(9, 10, 99), {
+        speedFn: () => player.getSpeed(),
+        log: (text) => player.log(text)
+    });
     await player.experiment({
         name: 'Buble Sort',
         drawable: items,
-        commands: [() => bubleSort(items)]
+        commands: [(options) => bubleSort(items, options)]
     });
 }
 
 async function selectionSortDemo() {
     const player = new SimufastPlayer();
-    const items = new createVisualArray(randIntArray(9, 10, 99));
+    const items = new createVisualArray(randIntArray(9, 10, 99), {
+        speedFn: () => player.getSpeed(),
+        log: (text) => player.log(text)
+    });
     await player.experiment({
         name: 'Selection Sort',
         drawable: items,
-        commands: [() => selectionSort(items)]
+        commands: [(options) => selectionSort(items, options)]
     });
 }
 
@@ -359,7 +368,7 @@ class ConsitentHashNode {
     }
 }
 
-const bubleSort = async (items) => {
+const bubleSort = async (items, options) => {
     for (let i = 0; i < items.length; i++) {
         items.trackIndex("end", () => items.length - i - 1);
         for (let j = 0; j < items.length - i - 1; j++) {
@@ -368,11 +377,12 @@ const bubleSort = async (items) => {
             if (await items.compareAtIndex(j, j + 1) > 0) {
                 await items.swap(j, j + 1);
             }
+            await options.pauseIfRequired();
         }
     }
 }
 
-const selectionSort = async (items) => {
+const selectionSort = async (items, options) => {
     for (let i = 0; i < items.length - 1; i++) {
         items.trackIndex("i", () => i);
         let minValueIndex = i;
@@ -382,6 +392,7 @@ const selectionSort = async (items) => {
             if (await items.compareAtIndex(minValueIndex, j) > 0) {
                 minValueIndex = j;
             }
+            await options.pauseIfRequired();
         }
         await items.swap(i, minValueIndex);
     }
@@ -399,8 +410,8 @@ const randomInteger = (min, max) => {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-const createVisualArray = function (array) {
-    const visualArray = new VisualArray(array);
+const createVisualArray = function (array, options) {
+    const visualArray = new VisualArray(array, options);
     return new Proxy(visualArray, {
         get: function (target, property) {
             return target._get_(property);
@@ -427,8 +438,10 @@ const tweenPromise = (tween) => {
     rerender all or override methods? or render diff->how to track diff?
 */
 class VisualArray {
-    constructor(values) {
+    constructor(values, options) {
         this.values = values || [];
+        this.options = options || {};
+        this.speedFn = this.options.speedFn || (() => 1);
         this.container = new createjs.Container();
         this.y = 0;
         this.elementDisplaySize = 50;
@@ -457,8 +470,8 @@ class VisualArray {
 
     async compareAtIndex(i, j) {
         await Promise.all([
-            this.elements[i].highlight(),
-            this.elements[j].highlight()
+            this.elements[i].highlight(this.speedFn()),
+            this.elements[j].highlight(this.speedFn())
         ]);
         return this.values[i] - this.values[j];
     }
@@ -469,8 +482,8 @@ class VisualArray {
         const jContainer = this.elements[j].container;
         const iPosX = iContainer.x;
         const jPosX = jContainer.x;
-        const iPromise = tweenPromise(createjs.Tween.get(iContainer).to({ x: jPosX }, 1000, createjs.Ease.linear));
-        const jPromise = tweenPromise(createjs.Tween.get(jContainer).to({ x: iPosX }, 1000, createjs.Ease.linear));
+        const iPromise = tweenPromise(createjs.Tween.get(iContainer).to({ x: jPosX }, 1000 / this.speedFn(), createjs.Ease.linear));
+        const jPromise = tweenPromise(createjs.Tween.get(jContainer).to({ x: iPosX }, 1000 / this.speedFn(), createjs.Ease.linear));
         swap(this.elements, i, j);
         await Promise.all([iPromise, jPromise]);
     }
@@ -540,14 +553,14 @@ class ArrayElement {
         parent.addChild(this.container);
     }
 
-    async highlight() {
+    async highlight(speed) {
         return new Promise((resolve) => {
             var element = this;
             element._select();
             setTimeout(function () {
                 element._deselect();
                 resolve();
-            }, 1000);
+            }, 1000 / speed);
         });
     }
 
