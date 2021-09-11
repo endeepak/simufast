@@ -12,7 +12,7 @@
     display: flex;
     flex-direction: row;
     background: lightskyblue;
-    padding: 15px;
+    padding: 10px;
 }
 
 /* align center horizontally */
@@ -47,10 +47,9 @@
     text-align: right;
 }
 
-.simufast-player .additional-info {
-    padding: 15px;
+.simufast-player .stats-section {
+    padding: 10px;
     background: aliceblue;
-    /* border: 1px solid darkgray; */
 }
 
 .simufast-player .closed {
@@ -71,7 +70,6 @@
     text-align: center;
 }
 
-.simufast-player .stats {
-    /* display: inline-block; */
+.simufast-player .stats:not(:empty) {
     margin-top: 10px;
 }

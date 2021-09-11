@@ -1,6 +1,5 @@
 /**
 Backlog:
-    - Show stats like cache hits
     - Show detailed logs with auto scroll
     - Embeddable script like github gist
     - CDN build for simufast. Build npm module
@@ -62,9 +61,9 @@ class SimufastPlayer {
                         <i style="display: none;" class="spinner fa fa-spinner fa-spin"></i>
                     </span>
                 </div>
-                <div class="additional-info">
+                <div style="display: none;" class="stats-section">
                     <a class="stats-link" href="#">Stats</a>
-                    <div class="stats closed"></div>
+                    <div class="stats"></div>
                 </div>
             </div>
         `;
@@ -80,6 +79,7 @@ class SimufastPlayer {
         this._playPauseButton = player.getElementsByClassName('play-pause-button')[0];
         this._spinner = player.getElementsByClassName('spinner')[0];
         this._speedSelect = player.getElementsByClassName('speed-select')[0];
+        this._statsSection = player.getElementsByClassName('stats-section')[0];
         this._statsLink = player.getElementsByClassName('stats-link')[0];
         this._stats = player.getElementsByClassName('stats')[0];
 
@@ -112,6 +112,9 @@ class SimufastPlayer {
     }
 
     updateStats(statsHTML) {
+        if (statsHTML) {
+            this._statsSection.style.display = '';
+        }
         this._stats.innerHTML = statsHTML;
     }
 
@@ -165,6 +168,7 @@ class SimufastPlayer {
                 onStepCompleted: this._pauseIfRequired.bind(this)
             });
             this.updateProgress({ total: totalCommands, completed: totalCommands - commandsQueue.length });
+            this.updateStats(drawable.getStatsHTML ? drawable.getStatsHTML() : '');
             await this._pauseIfRequired();
         }
         this._allowReplay();
@@ -172,20 +176,20 @@ class SimufastPlayer {
 }
 
 async function consitentHashDemo1() {
-    const randomWords = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Non odio euismod lacinia at quis risus sed vulputate. Ligula ullamcorper malesuada proin libero nunc consequat interdum. Sed id semper risus in hendrerit gravida rutrum quisque non. Enim eu turpis egestas pretium aenean pharetra magna ac. Scelerisque purus semper eget duis at. Vulputate odio ut enim blandit volutpat maecenas. Fames ac turpis egestas sed tempus urna et. Vitae tempus quam pellentesque nec nam. Lacus laoreet non curabitur gravida arcu. Risus viverra adipiscing at in tellus integer feugiat. Enim blandit volutpat maecenas volutpat blandit. Sit amet mattis vulputate enim nulla aliquet porttitor lacus luctus. Mattis aliquam faucibus purus in. Enim blandit volutpat maecenas volutpat blandit aliquam etiam erat".replaceAll('.', '').replaceAll(',', '').split(' ');
     const player = new SimufastPlayer();
     const chRing = new ConsitentHashRing({
         speedFn: () => player.getSpeed(),
-        log: (text) => player.log(text),
-        updateStats: (stats) => player.updateStats(stats)
+        log: (text) => player.log(text)
     });
+    const keys = [...Array(100)].map(() => makeid(5)); // 100 unique keys
     const commands = [];
     for (let i = 1; i <= 4; i++) {
         commands.push(() => chRing.addNode(`N${i}`));
     }
     // commands.push(() => chRing.removeNode(`N${randomInteger(1, 4)}`));
-    for (let word of randomWords) {
-        commands.push(() => chRing.store(word, word));
+    for (let i = 1; i < 500; i++) {
+        const key = getRandomValueFromArray(keys);
+        commands.push(() => chRing.getOrFetch(key, () => `${key}'s value from data source`));
     }
     await player.experiment({
         name: 'Consistent Hash',
@@ -220,6 +224,10 @@ async function selectionSortDemo() {
     });
 }
 
+const getRandomValueFromArray = (values) => {
+    return values[randomInteger(0, values.length - 1)];
+}
+
 // https://gist.github.com/0x263b/2bdd90886c2036a1ad5bcf06d6e6fb37
 String.prototype.toColor = function () {
     var colors = ["#e51c23", "#e91e63", "#9c27b0", "#673ab7", "#3f51b5", "#5677fc", "#03a9f4", "#00bcd4", "#009688", "#259b24", "#8bc34a", "#afb42b", "#ff9800", "#ff5722", "#795548", "#607d8b"]
@@ -235,7 +243,15 @@ String.prototype.toColor = function () {
 }
 
 // https://stackoverflow.com/a/33486055/69362
-var MD5 = function (d) { var r = M(V(Y(X(d), 8 * d.length))); return r.toLowerCase() }; function M(d) { for (var _, m = "0123456789ABCDEF", f = "", r = 0; r < d.length; r++)_ = d.charCodeAt(r), f += m.charAt(_ >>> 4 & 15) + m.charAt(15 & _); return f } function X(d) { for (var _ = Array(d.length >> 2), m = 0; m < _.length; m++)_[m] = 0; for (m = 0; m < 8 * d.length; m += 8)_[m >> 5] |= (255 & d.charCodeAt(m / 8)) << m % 32; return _ } function V(d) { for (var _ = "", m = 0; m < 32 * d.length; m += 8)_ += String.fromCharCode(d[m >> 5] >>> m % 32 & 255); return _ } function Y(d, _) { d[_ >> 5] |= 128 << _ % 32, d[14 + (_ + 64 >>> 9 << 4)] = _; for (var m = 1732584193, f = -271733879, r = -1732584194, i = 271733878, n = 0; n < d.length; n += 16) { var h = m, t = f, g = r, e = i; f = md5_ii(f = md5_ii(f = md5_ii(f = md5_ii(f = md5_hh(f = md5_hh(f = md5_hh(f = md5_hh(f = md5_gg(f = md5_gg(f = md5_gg(f = md5_gg(f = md5_ff(f = md5_ff(f = md5_ff(f = md5_ff(f, r = md5_ff(r, i = md5_ff(i, m = md5_ff(m, f, r, i, d[n + 0], 7, -680876936), f, r, d[n + 1], 12, -389564586), m, f, d[n + 2], 17, 606105819), i, m, d[n + 3], 22, -1044525330), r = md5_ff(r, i = md5_ff(i, m = md5_ff(m, f, r, i, d[n + 4], 7, -176418897), f, r, d[n + 5], 12, 1200080426), m, f, d[n + 6], 17, -1473231341), i, m, d[n + 7], 22, -45705983), r = md5_ff(r, i = md5_ff(i, m = md5_ff(m, f, r, i, d[n + 8], 7, 1770035416), f, r, d[n + 9], 12, -1958414417), m, f, d[n + 10], 17, -42063), i, m, d[n + 11], 22, -1990404162), r = md5_ff(r, i = md5_ff(i, m = md5_ff(m, f, r, i, d[n + 12], 7, 1804603682), f, r, d[n + 13], 12, -40341101), m, f, d[n + 14], 17, -1502002290), i, m, d[n + 15], 22, 1236535329), r = md5_gg(r, i = md5_gg(i, m = md5_gg(m, f, r, i, d[n + 1], 5, -165796510), f, r, d[n + 6], 9, -1069501632), m, f, d[n + 11], 14, 643717713), i, m, d[n + 0], 20, -373897302), r = md5_gg(r, i = md5_gg(i, m = md5_gg(m, f, r, i, d[n + 5], 5, -701558691), f, r, d[n + 10], 9, 38016083), m, f, d[n + 15], 14, -660478335), i, m, d[n + 4], 20, -405537848), r = md5_gg(r, i = md5_gg(i, m = md5_gg(m, f, r, i, d[n + 9], 5, 568446438), f, r, d[n + 14], 9, -1019803690), m, f, d[n + 3], 14, -187363961), i, m, d[n + 8], 20, 1163531501), r = md5_gg(r, i = md5_gg(i, m = md5_gg(m, f, r, i, d[n + 13], 5, -1444681467), f, r, d[n + 2], 9, -51403784), m, f, d[n + 7], 14, 1735328473), i, m, d[n + 12], 20, -1926607734), r = md5_hh(r, i = md5_hh(i, m = md5_hh(m, f, r, i, d[n + 5], 4, -378558), f, r, d[n + 8], 11, -2022574463), m, f, d[n + 11], 16, 1839030562), i, m, d[n + 14], 23, -35309556), r = md5_hh(r, i = md5_hh(i, m = md5_hh(m, f, r, i, d[n + 1], 4, -1530992060), f, r, d[n + 4], 11, 1272893353), m, f, d[n + 7], 16, -155497632), i, m, d[n + 10], 23, -1094730640), r = md5_hh(r, i = md5_hh(i, m = md5_hh(m, f, r, i, d[n + 13], 4, 681279174), f, r, d[n + 0], 11, -358537222), m, f, d[n + 3], 16, -722521979), i, m, d[n + 6], 23, 76029189), r = md5_hh(r, i = md5_hh(i, m = md5_hh(m, f, r, i, d[n + 9], 4, -640364487), f, r, d[n + 12], 11, -421815835), m, f, d[n + 15], 16, 530742520), i, m, d[n + 2], 23, -995338651), r = md5_ii(r, i = md5_ii(i, m = md5_ii(m, f, r, i, d[n + 0], 6, -198630844), f, r, d[n + 7], 10, 1126891415), m, f, d[n + 14], 15, -1416354905), i, m, d[n + 5], 21, -57434055), r = md5_ii(r, i = md5_ii(i, m = md5_ii(m, f, r, i, d[n + 12], 6, 1700485571), f, r, d[n + 3], 10, -1894986606), m, f, d[n + 10], 15, -1051523), i, m, d[n + 1], 21, -2054922799), r = md5_ii(r, i = md5_ii(i, m = md5_ii(m, f, r, i, d[n + 8], 6, 1873313359), f, r, d[n + 15], 10, -30611744), m, f, d[n + 6], 15, -1560198380), i, m, d[n + 13], 21, 1309151649), r = md5_ii(r, i = md5_ii(i, m = md5_ii(m, f, r, i, d[n + 4], 6, -145523070), f, r, d[n + 11], 10, -1120210379), m, f, d[n + 2], 15, 718787259), i, m, d[n + 9], 21, -343485551), m = safe_add(m, h), f = safe_add(f, t), r = safe_add(r, g), i = safe_add(i, e) } return Array(m, f, r, i) } function md5_cmn(d, _, m, f, r, i) { return safe_add(bit_rol(safe_add(safe_add(_, d), safe_add(f, i)), r), m) } function md5_ff(d, _, m, f, r, i, n) { return md5_cmn(_ & m | ~_ & f, d, _, r, i, n) } function md5_gg(d, _, m, f, r, i, n) { return md5_cmn(_ & f | m & ~f, d, _, r, i, n) } function md5_hh(d, _, m, f, r, i, n) { return md5_cmn(_ ^ m ^ f, d, _, r, i, n) } function md5_ii(d, _, m, f, r, i, n) { return md5_cmn(m ^ (_ | ~f), d, _, r, i, n) } function safe_add(d, _) { var m = (65535 & d) + (65535 & _); return (d >> 16) + (_ >> 16) + (m >> 16) << 16 | 65535 & m } function bit_rol(d, _) { return d << _ | d >>> 32 - _ };
+var MD5 = function (d) {
+    var r = M(V(Y(X(d), 8 * d.length))); return r.toLowerCase()
+};
+function M(d) { for (var _, m = "0123456789ABCDEF", f = "", r = 0; r < d.length; r++)_ = d.charCodeAt(r), f += m.charAt(_ >>> 4 & 15) + m.charAt(15 & _); return f }
+function X(d) { for (var _ = Array(d.length >> 2), m = 0; m < _.length; m++)_[m] = 0; for (m = 0; m < 8 * d.length; m += 8)_[m >> 5] |= (255 & d.charCodeAt(m / 8)) << m % 32; return _ }
+function V(d) { for (var _ = "", m = 0; m < 32 * d.length; m += 8)_ += String.fromCharCode(d[m >> 5] >>> m % 32 & 255); return _ }
+function Y(d, _) { d[_ >> 5] |= 128 << _ % 32, d[14 + (_ + 64 >>> 9 << 4)] = _; for (var m = 1732584193, f = -271733879, r = -1732584194, i = 271733878, n = 0; n < d.length; n += 16) { var h = m, t = f, g = r, e = i; f = md5_ii(f = md5_ii(f = md5_ii(f = md5_ii(f = md5_hh(f = md5_hh(f = md5_hh(f = md5_hh(f = md5_gg(f = md5_gg(f = md5_gg(f = md5_gg(f = md5_ff(f = md5_ff(f = md5_ff(f = md5_ff(f, r = md5_ff(r, i = md5_ff(i, m = md5_ff(m, f, r, i, d[n + 0], 7, -680876936), f, r, d[n + 1], 12, -389564586), m, f, d[n + 2], 17, 606105819), i, m, d[n + 3], 22, -1044525330), r = md5_ff(r, i = md5_ff(i, m = md5_ff(m, f, r, i, d[n + 4], 7, -176418897), f, r, d[n + 5], 12, 1200080426), m, f, d[n + 6], 17, -1473231341), i, m, d[n + 7], 22, -45705983), r = md5_ff(r, i = md5_ff(i, m = md5_ff(m, f, r, i, d[n + 8], 7, 1770035416), f, r, d[n + 9], 12, -1958414417), m, f, d[n + 10], 17, -42063), i, m, d[n + 11], 22, -1990404162), r = md5_ff(r, i = md5_ff(i, m = md5_ff(m, f, r, i, d[n + 12], 7, 1804603682), f, r, d[n + 13], 12, -40341101), m, f, d[n + 14], 17, -1502002290), i, m, d[n + 15], 22, 1236535329), r = md5_gg(r, i = md5_gg(i, m = md5_gg(m, f, r, i, d[n + 1], 5, -165796510), f, r, d[n + 6], 9, -1069501632), m, f, d[n + 11], 14, 643717713), i, m, d[n + 0], 20, -373897302), r = md5_gg(r, i = md5_gg(i, m = md5_gg(m, f, r, i, d[n + 5], 5, -701558691), f, r, d[n + 10], 9, 38016083), m, f, d[n + 15], 14, -660478335), i, m, d[n + 4], 20, -405537848), r = md5_gg(r, i = md5_gg(i, m = md5_gg(m, f, r, i, d[n + 9], 5, 568446438), f, r, d[n + 14], 9, -1019803690), m, f, d[n + 3], 14, -187363961), i, m, d[n + 8], 20, 1163531501), r = md5_gg(r, i = md5_gg(i, m = md5_gg(m, f, r, i, d[n + 13], 5, -1444681467), f, r, d[n + 2], 9, -51403784), m, f, d[n + 7], 14, 1735328473), i, m, d[n + 12], 20, -1926607734), r = md5_hh(r, i = md5_hh(i, m = md5_hh(m, f, r, i, d[n + 5], 4, -378558), f, r, d[n + 8], 11, -2022574463), m, f, d[n + 11], 16, 1839030562), i, m, d[n + 14], 23, -35309556), r = md5_hh(r, i = md5_hh(i, m = md5_hh(m, f, r, i, d[n + 1], 4, -1530992060), f, r, d[n + 4], 11, 1272893353), m, f, d[n + 7], 16, -155497632), i, m, d[n + 10], 23, -1094730640), r = md5_hh(r, i = md5_hh(i, m = md5_hh(m, f, r, i, d[n + 13], 4, 681279174), f, r, d[n + 0], 11, -358537222), m, f, d[n + 3], 16, -722521979), i, m, d[n + 6], 23, 76029189), r = md5_hh(r, i = md5_hh(i, m = md5_hh(m, f, r, i, d[n + 9], 4, -640364487), f, r, d[n + 12], 11, -421815835), m, f, d[n + 15], 16, 530742520), i, m, d[n + 2], 23, -995338651), r = md5_ii(r, i = md5_ii(i, m = md5_ii(m, f, r, i, d[n + 0], 6, -198630844), f, r, d[n + 7], 10, 1126891415), m, f, d[n + 14], 15, -1416354905), i, m, d[n + 5], 21, -57434055), r = md5_ii(r, i = md5_ii(i, m = md5_ii(m, f, r, i, d[n + 12], 6, 1700485571), f, r, d[n + 3], 10, -1894986606), m, f, d[n + 10], 15, -1051523), i, m, d[n + 1], 21, -2054922799), r = md5_ii(r, i = md5_ii(i, m = md5_ii(m, f, r, i, d[n + 8], 6, 1873313359), f, r, d[n + 15], 10, -30611744), m, f, d[n + 6], 15, -1560198380), i, m, d[n + 13], 21, 1309151649), r = md5_ii(r, i = md5_ii(i, m = md5_ii(m, f, r, i, d[n + 4], 6, -145523070), f, r, d[n + 11], 10, -1120210379), m, f, d[n + 2], 15, 718787259), i, m, d[n + 9], 21, -343485551), m = safe_add(m, h), f = safe_add(f, t), r = safe_add(r, g), i = safe_add(i, e) } return Array(m, f, r, i) } function md5_cmn(d, _, m, f, r, i) { return safe_add(bit_rol(safe_add(safe_add(_, d), safe_add(f, i)), r), m) } function md5_ff(d, _, m, f, r, i, n) { return md5_cmn(_ & m | ~_ & f, d, _, r, i, n) } function md5_gg(d, _, m, f, r, i, n) { return md5_cmn(_ & f | m & ~f, d, _, r, i, n) } function md5_hh(d, _, m, f, r, i, n) { return md5_cmn(_ ^ m ^ f, d, _, r, i, n) } function md5_ii(d, _, m, f, r, i, n) { return md5_cmn(m ^ (_ | ~f), d, _, r, i, n) } function safe_add(d, _) { var m = (65535 & d) + (65535 & _); return (d >> 16) + (_ >> 16) + (m >> 16) << 16 | 65535 & m } function bit_rol(d, _) {
+    return d << _ | d >>> 32 - _
+};
 
 // https://stackoverflow.com/a/33647870/69362
 const getHashCode = (string) => {
@@ -256,6 +272,17 @@ function unCamelCase(str) {
         .replace(/\b([A-Z]+)([A-Z])([a-z])/, '$1 $2$3')
         // uppercase the first character
         .replace(/^./, function (str) { return str.toUpperCase(); })
+}
+
+// https://stackoverflow.com/a/1349426/69362
+function makeid(length) {
+    var result = '';
+    var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var charactersLength = characters.length;
+    for (var i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result;
 }
 
 const objectsToTable = (stats) => {
@@ -283,7 +310,6 @@ class ConsitentHashRing {
         };
         this.log = options.log || console.log;
         this.speedFn = options.speedFn || (() => 1);
-        this.updateStats = options.updateStats || (() => { });
 
         this.visualConfig = {
             ringX: 250,
@@ -323,7 +349,6 @@ class ConsitentHashRing {
         }
         this.nodeReplicas.sort((n1, n2) => n1.position - n2.position);
         await Promise.all(drawPromises);
-        this.updateStats(objectsToTable(this.getNodeStats()));
     }
 
     async removeNode(nodeName) {
@@ -339,7 +364,6 @@ class ConsitentHashRing {
             this.nodeReplicas.splice(this.nodeReplicas.indexOf(nodeReplica), 1);
         }
         await Promise.all(undrawPromises);
-        this.updateStats(objectsToTable(this.getNodeStats()));
     }
 
     _getPosition(key) {
@@ -357,21 +381,22 @@ class ConsitentHashRing {
         return this.nodeReplicas[0];
     }
 
-    async store(key, value) {
-        this.log(`Storing key: ${key}`);
+    async getOrFetch(key, valueFetcher) {
+        this.log(`Get key: ${key}`);
         const position = this._getPosition(key);
         const nodeReplica = this._getNodeReplicaNextTo(position);
-        nodeReplica.node.store(key, value);
+        const value = await nodeReplica.node.getOrFetch(key, valueFetcher);
 
-        await this._visualiseStoringKey(key, position, nodeReplica);
-        this.updateStats(objectsToTable(this.getNodeStats()));
+        await this._visualiseGetOrFetch(key, position, nodeReplica);
+
+        return value;
     }
 
     _bringNodeReplicaToFront(nodeReplica) {
         this.container.setChildIndex(nodeReplica.container, this.container.numChildren - 1);
     }
 
-    async _visualiseStoringKey(key, position, nodeReplica) {
+    async _visualiseGetOrFetch(key, position, nodeReplica) {
         const { ringX, ringY, ringRadius } = this.visualConfig;
         this._bringNodeReplicaToFront(nodeReplica);
 
@@ -391,9 +416,16 @@ class ConsitentHashRing {
         return this.nodes.map((node) => {
             return {
                 node: node.name,
-                keys: node.getKeys().length
+                keys: node.stats.keys,
+                hits: node.stats.hits,
+                misses: node.stats.misses,
+                hitRatio: node.stats.hits && node.stats.misses ?  Math.round(node.stats.hits * 100 / (node.stats.hits + node.stats.misses)) : 0
             }
         });
+    }
+
+    getStatsHTML() {
+        return objectsToTable(this.getNodeStats());
     }
 
     _getCircumferencePointAtPosition(position) {
@@ -465,14 +497,27 @@ class ConsitentHashNode {
     constructor(name) {
         this.name = name;
         this.storage = {};
+        this.stats = {
+            keys: 0,
+            hits: 0,
+            misses: 0
+        };
     }
 
     _createVisual() {
         this.container = new createjs.Container();
     }
 
-    store(key, value) {
-        this.storage[key] = value;
+    async getOrFetch(key, valueFetcher) {
+        if (this.storage.hasOwnProperty(key)) {
+            this.stats.hits += 1;
+            return this.storage[key];
+        } else {
+            const value = await valueFetcher();
+            this.storage[key] = value;
+            this.stats.keys += 1;
+            this.stats.misses += 1;
+        }
     }
 
     getKeys() {
