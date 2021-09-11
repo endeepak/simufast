@@ -2,7 +2,6 @@
 Backlog:
     - Simulate remove Node
     - Show cache hits
-    - Change play button to restart after completion
     - Embeddable script like github gist
     - CDN build for simufast. Build npm module
     - Embeddable script builder : https://codemirror.net/
@@ -29,6 +28,11 @@ class SimufastPlayer {
 
     updateProgress(progress) {
         this._progressText.innerHTML = `Completed: ${progress.completed}/${progress.total}`;
+        if (progress.completed === progress.total) {
+            this.pause();
+            this._experiment.completed = true;
+            this._playPauseButton.classList.replace('fa-play', 'fa-repeat');
+        }
     }
 
     _renderDOM() {
@@ -76,12 +80,12 @@ class SimufastPlayer {
         createjs.Ticker.addEventListener("tick", this._stage);
 
         this._playPauseButton.addEventListener('click', () => {
-            if (this._play) {
-                this._playPauseButton.classList.replace('fa-pause', 'fa-play');
+            const previouslyPlaying = this._play;
+            if (previouslyPlaying) {
+                this.pause();
             } else {
-                this._playPauseButton.classList.replace('fa-play', 'fa-pause');
+                this.play();
             }
-            this._play = !this._play;
         });
 
         this._speedSelect.addEventListener('change', () => {
@@ -103,17 +107,41 @@ class SimufastPlayer {
         }
     }
 
-    async experiment({ name, drawable, commands }) {
+    play() {
+        const previousExperimentCompleted = this._experiment.completed;
+        if (previousExperimentCompleted) {
+            this.reset();
+        }
+        this._play = true;
+        this._playPauseButton.classList.replace('fa-play', 'fa-pause');
+    }
+
+    pause() {
+        this._play = false;
+        this._playPauseButton.classList.replace('fa-pause', 'fa-play');
+    }
+
+    reset() {
+        const { drawable } = this._experiment;
+        drawable.reset();
+        this._experiment.completed = false;
+        this.experiment(this._experiment);
+    }
+
+    async experiment(experiment) {
+        const { name, drawable, commands } = experiment;
+        this._experiment = experiment;
         this.log(name);
         drawable.draw(this._stage);
         const totalCommands = commands.length;
+        const commandsQueue = [...commands];
         await this._pauseIfRequired();
-        while (commands.length > 0) {
-            const command = commands.shift();
+        while (commandsQueue.length > 0) {
+            const command = commandsQueue.shift();
             await command({
-                pauseIfRequired: this._pauseIfRequired.bind(this)
+                onStepCompleted: this._pauseIfRequired.bind(this)
             });
-            this.updateProgress({ total: totalCommands, completed: totalCommands - commands.length });
+            this.updateProgress({ total: totalCommands, completed: totalCommands - commandsQueue.length });
             await this._pauseIfRequired();
         }
     }
@@ -200,8 +228,6 @@ class ConsitentHashRing {
             maxSlots: 1000,
             nodeReplcationFactor: 16,
         };
-        this.nodes = [];
-        this.nodeReplicas = [];
         this.log = options.log || console.log;
         this.speedFn = options.speedFn || (() => 1);
 
@@ -215,6 +241,8 @@ class ConsitentHashRing {
 
     _initVisual() {
         const { ringX, ringY, ringRadius } = this.visualConfig;
+        this.nodes = [];
+        this.nodeReplicas = [];
         this.container = new createjs.Container();
         const ring = new createjs.Shape();
         ring.graphics.setStrokeStyle(4).beginStroke("#66a841").drawCircle(ringX, ringY, ringRadius);
@@ -301,10 +329,17 @@ class ConsitentHashRing {
     }
 
     async draw(parent) {
+        this._parent = parent;
         for (const nodeReplica of this.nodeReplicas) {
             await nodeReplica.draw(this.container);
         }
         parent.addChild(this.container);
+    }
+
+    reset() {
+        if (!this._parent) return;
+        this._parent.removeChild(this.container);
+        this._initVisual();
     }
 }
 
@@ -377,7 +412,7 @@ const bubleSort = async (items, options) => {
             if (await items.compareAtIndex(j, j + 1) > 0) {
                 await items.swap(j, j + 1);
             }
-            await options.pauseIfRequired();
+            await options.onStepCompleted();
         }
     }
 }
@@ -392,7 +427,7 @@ const selectionSort = async (items, options) => {
             if (await items.compareAtIndex(minValueIndex, j) > 0) {
                 minValueIndex = j;
             }
-            await options.pauseIfRequired();
+            await options.onStepCompleted();
         }
         await items.swap(i, minValueIndex);
     }
@@ -439,13 +474,19 @@ const tweenPromise = (tween) => {
 */
 class VisualArray {
     constructor(values, options) {
-        this.values = values || [];
+        this._originalValues = values || [];
         this.options = options || {};
         this.speedFn = this.options.speedFn || (() => 1);
-        this.container = new createjs.Container();
         this.y = 0;
         this.elementDisplaySize = 50;
         this.indexTrackerDisplaySize = 30;
+
+        this._initVisual();
+    }
+
+    _initVisual() {
+        this.values = [...this._originalValues];
+        this.container = new createjs.Container();
         this.elements = [];
         this.nextElementX = 0;
         for (let i = 0; i < this.values.length; i++) {
@@ -489,10 +530,17 @@ class VisualArray {
     }
 
     draw(parent) {
+        this._parent = parent;
         for (const element of this.elements) {
             element.draw(this.container);
         }
         parent.addChild(this.container);
+    }
+
+    reset() {
+        if (!this._parent) return;
+        this._parent.removeChild(this.container);
+        this._initVisual();
     }
 
     trackIndex(name, valueFn) {
