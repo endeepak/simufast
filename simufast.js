@@ -28,11 +28,12 @@ class SimufastPlayer {
 
     updateProgress(progress) {
         this._progressText.innerHTML = `Completed: ${progress.completed}/${progress.total}`;
-        if (progress.completed === progress.total) {
-            this.pause();
-            this._experiment.completed = true;
-            this._playPauseButton.classList.replace('fa-play', 'fa-repeat');
-        }
+    }
+
+    _allowReplay() {
+        this.pause();
+        this._experiment.completed = true;
+        this._playPauseButton.classList.replace('fa-play', 'fa-repeat');
     }
 
     _renderDOM() {
@@ -61,6 +62,10 @@ class SimufastPlayer {
                         <i style="display: none;" class="spinner fa fa-spinner fa-spin"></i>
                     </span>
                 </div>
+                <div class="additional-info">
+                    <a class="stats-link" href="#">Stats</a>
+                    <div class="stats closed"></div>
+                </div>
             </div>
         `;
 
@@ -75,6 +80,8 @@ class SimufastPlayer {
         this._playPauseButton = player.getElementsByClassName('play-pause-button')[0];
         this._spinner = player.getElementsByClassName('spinner')[0];
         this._speedSelect = player.getElementsByClassName('speed-select')[0];
+        this._statsLink = player.getElementsByClassName('stats-link')[0];
+        this._stats = player.getElementsByClassName('stats')[0];
 
         createjs.Ticker.framerate = 60;
         createjs.Ticker.addEventListener("tick", this._stage);
@@ -91,6 +98,21 @@ class SimufastPlayer {
         this._speedSelect.addEventListener('change', () => {
             this._speed = Number(this._speedSelect.value);
         });
+
+        this._statsLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            if (this._stats.classList.contains('closed')) {
+                this._stats.classList.remove('closed');
+                this._stats.classList.add('open');
+            } else {
+                this._stats.classList.remove('open');
+                this._stats.classList.add('closed');
+            }
+        })
+    }
+
+    updateStats(statsHTML) {
+        this._stats.innerHTML = statsHTML;
     }
 
     _showSpinner() {
@@ -145,6 +167,7 @@ class SimufastPlayer {
             this.updateProgress({ total: totalCommands, completed: totalCommands - commandsQueue.length });
             await this._pauseIfRequired();
         }
+        this._allowReplay();
     }
 }
 
@@ -153,7 +176,8 @@ async function consitentHashDemo1() {
     const player = new SimufastPlayer();
     const chRing = new ConsitentHashRing({
         speedFn: () => player.getSpeed(),
-        log: (text) => player.log(text)
+        log: (text) => player.log(text),
+        updateStats: (stats) => player.updateStats(stats)
     });
     const commands = [];
     for (let i = 1; i <= 4; i++) {
@@ -168,7 +192,6 @@ async function consitentHashDemo1() {
         drawable: chRing,
         commands: commands
     });
-    console.log(chRing.getNodeStats());
 }
 
 async function bubleSortDemo() {
@@ -224,6 +247,34 @@ const getHashCode = (string) => {
     return (hash + 2147483647) + 1; // return positive value
 }
 
+// https://stackoverflow.com/a/6229124/69362
+function unCamelCase(str) {
+    return str
+        // insert a space between lower & upper
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        // space before last upper in a sequence followed by lower
+        .replace(/\b([A-Z]+)([A-Z])([a-z])/, '$1 $2$3')
+        // uppercase the first character
+        .replace(/^./, function (str) { return str.toUpperCase(); })
+}
+
+const objectsToTable = (stats) => {
+    if (!stats || !stats.length) {
+        return '';
+    }
+    const keys = Object.keys(stats[0]);
+    const tableHeader = keys.map((key) => `<th>${unCamelCase(key)}</th>`).join('\n');
+    const tableBody = stats.map((stat) => {
+        const tds = keys.map((key) => `<td>${stat[key]}</td>`).join('\n');
+        return `<tr>${tds}</tr>`;
+    }).join('\n');
+    return `
+    <table>
+        <thead>${tableHeader}</thead>
+        <tbody>${tableBody}</tbody>
+    </table>
+    `
+}
 class ConsitentHashRing {
     constructor(options) {
         this.config = {
@@ -232,6 +283,7 @@ class ConsitentHashRing {
         };
         this.log = options.log || console.log;
         this.speedFn = options.speedFn || (() => 1);
+        this.updateStats = options.updateStats || (() => { });
 
         this.visualConfig = {
             ringX: 250,
@@ -271,6 +323,7 @@ class ConsitentHashRing {
         }
         this.nodeReplicas.sort((n1, n2) => n1.position - n2.position);
         await Promise.all(drawPromises);
+        this.updateStats(objectsToTable(this.getNodeStats()));
     }
 
     async removeNode(nodeName) {
@@ -286,6 +339,7 @@ class ConsitentHashRing {
             this.nodeReplicas.splice(this.nodeReplicas.indexOf(nodeReplica), 1);
         }
         await Promise.all(undrawPromises);
+        this.updateStats(objectsToTable(this.getNodeStats()));
     }
 
     _getPosition(key) {
@@ -310,6 +364,7 @@ class ConsitentHashRing {
         nodeReplica.node.store(key, value);
 
         await this._visualiseStoringKey(key, position, nodeReplica);
+        this.updateStats(objectsToTable(this.getNodeStats()));
     }
 
     _bringNodeReplicaToFront(nodeReplica) {
@@ -335,8 +390,8 @@ class ConsitentHashRing {
     getNodeStats() {
         return this.nodes.map((node) => {
             return {
-                nodeName: node.name,
-                keysCount: node.getKeys().length
+                node: node.name,
+                keys: node.getKeys().length
             }
         });
     }
