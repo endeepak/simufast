@@ -1,7 +1,7 @@
 /**
 Backlog:
-    - Simulate remove Node
-    - Show cache hits
+    - Show stats like cache hits
+    - Show detailed logs with auto scroll
     - Embeddable script like github gist
     - CDN build for simufast. Build npm module
     - Embeddable script builder : https://codemirror.net/
@@ -111,6 +111,7 @@ class SimufastPlayer {
         const previousExperimentCompleted = this._experiment.completed;
         if (previousExperimentCompleted) {
             this.reset();
+            this._playPauseButton.classList.replace('fa-repeat', 'fa-pause');
         }
         this._play = true;
         this._playPauseButton.classList.replace('fa-play', 'fa-pause');
@@ -158,6 +159,7 @@ async function consitentHashDemo1() {
     for (let i = 1; i <= 4; i++) {
         commands.push(() => chRing.addNode(`N${i}`));
     }
+    // commands.push(() => chRing.removeNode(`N${randomInteger(1, 4)}`));
     for (let word of randomWords) {
         commands.push(() => chRing.store(word, word));
     }
@@ -271,6 +273,21 @@ class ConsitentHashRing {
         await Promise.all(drawPromises);
     }
 
+    async removeNode(nodeName) {
+        const nodeIndex = this.nodes.findIndex(node => node.name === nodeName);
+        if (nodeIndex === -1) return;
+
+        const nodeReplicasOfNode = this.nodeReplicas.filter(nodeReplica => nodeReplica.node === this.nodes[nodeIndex]);
+        this.nodes.splice(nodeIndex, 1);
+        const undrawPromises = [];
+        for (const nodeReplica of nodeReplicasOfNode) {
+            this._bringNodeReplicaToFront(nodeReplica);
+            undrawPromises.push(nodeReplica.undraw(this.container));
+            this.nodeReplicas.splice(this.nodeReplicas.indexOf(nodeReplica), 1);
+        }
+        await Promise.all(undrawPromises);
+    }
+
     _getPosition(key) {
         const position = getHashCode(MD5(key)) % this.config.maxSlots;
         return position;
@@ -295,9 +312,13 @@ class ConsitentHashRing {
         await this._visualiseStoringKey(key, position, nodeReplica);
     }
 
+    _bringNodeReplicaToFront(nodeReplica) {
+        this.container.setChildIndex(nodeReplica.container, this.container.numChildren - 1);
+    }
+
     async _visualiseStoringKey(key, position, nodeReplica) {
         const { ringX, ringY, ringRadius } = this.visualConfig;
-        this.container.setChildIndex(nodeReplica.container, this.container.numChildren - 1);
+        this._bringNodeReplicaToFront(nodeReplica);
 
         const textPoint = this._getCircumferencePointAtPosition(position);
         const text = new createjs.Text(key, `${ringRadius / 10}px Arial`);
@@ -375,8 +396,13 @@ class ConsitentHashNodeReplica {
 
     async draw(parent) {
         parent.addChild(this.container);
-        const { x, y, radius } = this.visualConfig;
-        await tweenPromise(createjs.Tween.get(this.container).to({ x: x, y: y }, 1000 / this.speedFn(), createjs.Ease.linear));
+        const { x, y } = this.visualConfig;
+        await tweenPromise(createjs.Tween.get(this.container).to({ x: x, y: y }, 1000 / this.speedFn(), createjs.Ease.circIn));
+    }
+
+    async undraw(parent) {
+        await tweenPromise(createjs.Tween.get(this.container).to({ scaleX: 0, scaleY: 0 }, 1000 / this.speedFn(), createjs.Ease.linear));
+        parent.removeChild(this.container);
     }
 }
 
