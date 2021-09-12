@@ -1,12 +1,9 @@
 /**
 Backlog:
-    - Show ring level stats, simulate remove node
     - Show detailed logs with auto scroll
     - Embeddable script like github gist
     - CDN build for simufast. Build npm module
     - Embeddable script builder : https://codemirror.net/
-    - Create random word function, from limited set, use just n nodes, k words
-    - Simulate module hashing, compare stats
     - Step by step execution
     - Rewind? -> Undo / Redo
 */
@@ -176,6 +173,32 @@ class SimufastPlayer {
     }
 }
 
+const cacheDemoCommands = (simulation) => {
+    const keys = randStringArray(100);
+    const commands = [];
+    commands.push(() => simulation.addNode('N1'));
+    commands.push(() => simulation.addNode('N2'));
+    commands.push(() => simulation.addNode('N3'));
+    commands.push(() => simulation.addNode('N4'));
+    for (let i = 1; i < 100; i++) {
+        const key = getRandomValueFromArray(keys);
+        commands.push(() => simulation.getOrFetch(key, () => `${key}'s value from data source`));
+    }
+    commands.push(() => simulation.removeNode('N3'));
+    commands.push(() => simulation.addNode('N5'));
+    for (let i = 1; i < 100; i++) {
+        const key = getRandomValueFromArray(keys);
+        commands.push(() => simulation.getOrFetch(key, () => `${key}'s value from data source`));
+    }
+    commands.push(() => simulation.removeNode('N1'));
+    commands.push(() => simulation.addNode('N6'));
+    for (let i = 1; i < 100; i++) {
+        const key = getRandomValueFromArray(keys);
+        commands.push(() => simulation.getOrFetch(key, () => `${key}'s value from data source`));
+    }
+    return commands;
+}
+
 async function consitentHashDemo() {
     const player = new SimufastPlayer();
     const chRing = new ConsitentHashRing({
@@ -183,16 +206,7 @@ async function consitentHashDemo() {
         log: (text) => player.log(text)
     });
     const simulation = new MultiNodeCacheSimulation(chRing);
-    const keys = [...Array(100)].map(() => makeid(5)); // 100 unique keys
-    const commands = [];
-    for (let i = 1; i <= 4; i++) {
-        commands.push(() => simulation.addNode(`N${i}`));
-    }
-    // commands.push(() => simulation.removeNode(`N${randomInteger(1, 4)}`));
-    for (let i = 1; i < 500; i++) {
-        const key = getRandomValueFromArray(keys);
-        commands.push(() => simulation.getOrFetch(key, () => `${key}'s value from data source`));
-    }
+    const commands = cacheDemoCommands(simulation);
     await player.experiment({
         name: 'Consistent Hash',
         drawable: simulation,
@@ -207,16 +221,7 @@ async function moduloHashDemo() {
         log: (text) => player.log(text)
     });
     const simulation = new MultiNodeCacheSimulation(chRing);
-    const keys = [...Array(100)].map(() => makeid(5)); // 100 unique keys
-    const commands = [];
-    for (let i = 1; i <= 4; i++) {
-        commands.push(() => simulation.addNode(`N${i}`));
-    }
-    // commands.push(() => simulation.removeNode(`N${randomInteger(1, 4)}`));
-    for (let i = 1; i < 500; i++) {
-        const key = getRandomValueFromArray(keys);
-        commands.push(() => simulation.getOrFetch(key, () => `${key}'s value from data source`));
-    }
+    const commands = cacheDemoCommands(simulation);
     await player.experiment({
         name: 'Modulo Hash',
         drawable: simulation,
@@ -252,6 +257,10 @@ async function selectionSortDemo() {
 
 const getRandomValueFromArray = (values) => {
     return values[randomInteger(0, values.length - 1)];
+}
+
+const randStringArray = (n, stringLength = 5) => {
+    return [...Array(n)].map(() => makeid(stringLength));
 }
 
 // https://gist.github.com/0x263b/2bdd90886c2036a1ad5bcf06d6e6fb37
@@ -411,31 +420,90 @@ class CacheNode {
 }
 
 class ModuloHash {
-    constructor() {
+    constructor(options) {
+        this.log = options.log || console.log;
+        this.speedFn = options.speedFn || (() => 1);
+        this.visualConfig = {
+            height: 400,
+            x: 300,
+            y: 50,
+            nodeRadius: 400 / 20
+        }
+        this._initVisual();
+    }
+
+    _initVisual() {
         this.nodes = [];
+        this.container = new createjs.Container();
     }
 
-    addNode(nodeName) {
-        this.nodes.push(nodeName);
+    async addNode(nodeName) {
+        this.log(`Adding node: ${nodeName}`);
+        const point = this._getPontForNodeIndex(this.nodes.length);
+        const node = new HashNode(nodeName, undefined, {
+            x: point.x,
+            y: point.y,
+            radius: this.visualConfig.nodeRadius,
+            speedFn: this.speedFn
+        });
+        this.nodes.push(node);
+        await node.draw(this.container);
     }
 
-    removeNode(nodeName) {
-        const nodeIndex = this.nodes.indexOf(nodeName);
-        if (index === -1) return;
+    _getPontForNodeIndex(nodeIndex) {
+        return {
+            x: this.visualConfig.x - this.visualConfig.nodeRadius,
+            y: this.visualConfig.y + (2 * nodeIndex) * this.visualConfig.nodeRadius,
+        }
+    }
+
+    async removeNode(nodeName) {
+        this.log(`Removing node: ${nodeName}`);
+        const node = this.nodes.filter(node => node.node === nodeName)[0];
+        const nodeIndex = this.nodes.indexOf(node);
         this.nodes.splice(nodeIndex, 1);
+        const promises = [node.undraw(this.container)];
+        for (let i = nodeIndex; i < this.nodes.length; i++) {
+            promises.push(this.nodes[i].moveTo(this._getPontForNodeIndex(i)));
+        }
+        await Promise.all(promises);
     }
 
-    getNodeForKey(key) {
+    async getNodeForKey(key) {
+        this.log(`Get key: ${key}`);
         const nodeIndex = getHashCode(MD5(key)) % this.nodes.length;
-        return this.nodes[nodeIndex];
+        const node = this.nodes[nodeIndex];
+        await this._visualiseNodeForKey(key, nodeIndex, node);
+        return node.node;
     }
+
+    async _visualiseNodeForKey(key, nodeIndex, node) {
+        const { nodeRadius } = this.visualConfig;
+        const textPoint = this._getPontForNodeIndex(nodeIndex);
+        const text = new createjs.Text(key, `${nodeRadius}px Arial`);
+        this.container.addChild(text);
+        await Promise.all([
+            tweenPromise(createjs.Tween.get(text)
+                .to({ x: textPoint.x, y: textPoint.y }, 1000 / this.speedFn(), createjs.Ease.linear)),
+            node.highlight()
+        ])
+        this.container.removeChild(text);
+    }
+
 
     async draw(parent) {
-
+        this._parent = parent;
+        for (const node of this.nodes) {
+            await node.draw(this.container);
+        }
+        parent.addChild(this.container);
     }
 
     reset() {
+        if (!this._parent) return;
+        this._parent.removeChild(this.container);
         this.nodes = [];
+        this._initVisual();
     }
 }
 
@@ -472,7 +540,7 @@ class ConsitentHashRing {
             const replicaName = `${nodeName}-${replicaNum}`
             const position = this._getPosition(replicaName);
             const point = this._getCircumferencePointAtPosition(position);
-            const nodeReplica = new ConsitentHashNodeReplica(nodeName, position, {
+            const nodeReplica = new HashNode(nodeName, position, {
                 x: point.x,
                 y: point.y,
                 radius: this.visualConfig.ringRadius / 10,
@@ -486,6 +554,7 @@ class ConsitentHashRing {
     }
 
     async removeNode(nodeName) {
+        this.log(`Removing node: ${nodeName}`);
         const nodeReplicasOfNode = this.nodeReplicas.filter(nodeReplica => nodeReplica.node === nodeName);
         const undrawPromises = [];
         for (const nodeReplica of nodeReplicasOfNode) {
@@ -564,7 +633,7 @@ class ConsitentHashRing {
     }
 }
 
-class ConsitentHashNodeReplica {
+class HashNode {
     constructor(node, position, visualConfig) {
         this.node = node;
         this.position = position;
@@ -592,6 +661,11 @@ class ConsitentHashNodeReplica {
         await tweenPromise(createjs.Tween.get(this.container)
             .to({ scaleX: 1.5, scaleY: 1.5 }, 1000 / this.speedFn(), createjs.Ease.linear)
             .to({ scaleX: 1.0, scaleY: 1.0 }, 1000 / this.speedFn(), createjs.Ease.linear));
+    }
+
+    async moveTo(point) {
+        await tweenPromise(createjs.Tween.get(this.container)
+            .to({ x: point.x, y: point.y }, 1000 / this.speedFn(), createjs.Ease.linear));
     }
 
     async draw(parent) {
