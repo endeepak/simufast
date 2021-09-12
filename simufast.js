@@ -176,7 +176,7 @@ class SimufastPlayer {
     }
 }
 
-async function consitentHashDemo1() {
+async function consitentHashDemo() {
     const player = new SimufastPlayer();
     const chRing = new ConsitentHashRing({
         speedFn: () => player.getSpeed(),
@@ -195,6 +195,30 @@ async function consitentHashDemo1() {
     }
     await player.experiment({
         name: 'Consistent Hash',
+        drawable: simulation,
+        commands: commands
+    });
+}
+
+async function moduloHashDemo() {
+    const player = new SimufastPlayer();
+    const chRing = new ModuloHash({
+        speedFn: () => player.getSpeed(),
+        log: (text) => player.log(text)
+    });
+    const simulation = new MultiNodeCacheSimulation(chRing);
+    const keys = [...Array(100)].map(() => makeid(5)); // 100 unique keys
+    const commands = [];
+    for (let i = 1; i <= 4; i++) {
+        commands.push(() => simulation.addNode(`N${i}`));
+    }
+    // commands.push(() => simulation.removeNode(`N${randomInteger(1, 4)}`));
+    for (let i = 1; i < 500; i++) {
+        const key = getRandomValueFromArray(keys);
+        commands.push(() => simulation.getOrFetch(key, () => `${key}'s value from data source`));
+    }
+    await player.experiment({
+        name: 'Modulo Hash',
         drawable: simulation,
         commands: commands
     });
@@ -392,15 +416,26 @@ class ModuloHash {
     }
 
     addNode(nodeName) {
-
+        this.nodes.push(nodeName);
     }
 
     removeNode(nodeName) {
-
+        const nodeIndex = this.nodes.indexOf(nodeName);
+        if (index === -1) return;
+        this.nodes.splice(nodeIndex, 1);
     }
 
     getNodeForKey(key) {
+        const nodeIndex = getHashCode(MD5(key)) % this.nodes.length;
+        return this.nodes[nodeIndex];
+    }
 
+    async draw(parent) {
+
+    }
+
+    reset() {
+        this.nodes = [];
     }
 }
 
