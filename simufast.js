@@ -28,6 +28,7 @@ class SimufastPlayer {
     }
 
     _allowReplay() {
+        this.log(this._experiment.name);
         this.pause();
         this._experiment.completed = true;
         this._playPauseButton.classList.replace('fa-play', 'fa-repeat');
@@ -342,6 +343,10 @@ class MultiNodeCacheSimulation {
     constructor(nodeDecider) {
         this.nodes = {};
         this.nodeDecider = nodeDecider;
+        this.stats = {
+            hits: 0,
+            misses: 0
+        }
     }
 
     async addNode(nodeName) {
@@ -360,8 +365,13 @@ class MultiNodeCacheSimulation {
         // this.log(`Get key: ${key}`);
         const nodeName = await this.nodeDecider.getNodeForKey(key);
         const node = this.nodes[nodeName];
-        const value = await node.getOrFetch(key, valueFetcher);
-        return value;
+        const result = await node.getOrFetch(key, valueFetcher);
+        if (result.cached) {
+            this.stats.hits += 1;
+        } else {
+            this.stats.misses += 1;
+        }
+        return result.value;
     }
 
     async draw(stage) {
@@ -373,6 +383,10 @@ class MultiNodeCacheSimulation {
         this.nodeDecider.reset();
     }
 
+    _getHitRatio(hits, misses) {
+        return hits && misses ? Math.round(hits * 100 / (hits + misses)) : 0
+    }
+
     getNodeStats() {
         return Object.keys(this.nodes).map((nodeName) => {
             const node = this.nodes[nodeName];
@@ -381,13 +395,27 @@ class MultiNodeCacheSimulation {
                 keys: node.stats.keys,
                 hits: node.stats.hits,
                 misses: node.stats.misses,
-                hitRatio: node.stats.hits && node.stats.misses ? Math.round(node.stats.hits * 100 / (node.stats.hits + node.stats.misses)) : 0
+                hitRatio: this._getHitRatio(node.stats.hits, node.stats.misses)
             }
         });
     }
 
+    getTotalStats() {
+        const totalKeys = Object.keys(this.nodes).reduce((total, nodeName) => total + this.nodes[nodeName].stats.keys, 0);
+        return {
+            node: 'Overall',
+            keys: totalKeys,
+            hits: this.stats.hits,
+            misses: this.stats.misses,
+            hitRatio: this._getHitRatio(this.stats.hits, this.stats.misses)
+        }
+    }
+
     getStatsHTML() {
-        return objectsToTable(this.getNodeStats());
+        return objectsToTable([
+            ...this.getNodeStats(),
+            this.getTotalStats()
+        ]);
     }
 }
 
@@ -405,17 +433,20 @@ class CacheNode {
     async getOrFetch(key, valueFetcher) {
         if (this.storage.hasOwnProperty(key)) {
             this.stats.hits += 1;
-            return this.storage[key];
+            return {
+                value: this.storage[key],
+                cached: true
+            };
         } else {
             const value = await valueFetcher();
             this.storage[key] = value;
             this.stats.keys += 1;
             this.stats.misses += 1;
+            return {
+                value: value,
+                cached: false
+            };
         }
-    }
-
-    getKeys() {
-        return Object.keys(this.storage);
     }
 }
 
