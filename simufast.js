@@ -1,17 +1,30 @@
 /**
 Backlog:
-    - Show detailed logs with auto scroll
-    - Embeddable script like github gist
+    - Configurable canvas size
+    - Visual array positioning
+    - Mobile friendly sizing
     - CDN build for simufast. Build npm module
+TBD:
+    - Interactive commands for readers
+    - Embeddable script like github gist
     - Embeddable script builder : https://codemirror.net/
+    - Show detailed logs with auto scroll
     - Step by step execution
     - Rewind? -> Undo / Redo
 */
 
 class SimufastPlayer {
-    constructor() {
+    constructor(options) {
         this._play = false;
         this._speed = 1;
+        const defaultOptions = {
+            canvasWidth: 500,
+            canvasHeight: 500
+        }
+        this.options = {
+            ...defaultOptions,
+            ...options
+        };
         this._renderDOM();
     }
 
@@ -35,10 +48,11 @@ class SimufastPlayer {
     }
 
     _renderDOM() {
+        const { canvasHeight, canvasWidth } = this.options;
         const dom = `
             <div class="simufast-player">
                 <div class="last-log"></div>
-                <canvas id="canvas" width="500" height="500"></canvas>
+                <canvas id="canvas" width="${canvasWidth}" height="${canvasHeight}"></canvas>
                 <div class="control-bar">
                     <span class="speed">
                         <label>Speed:</label>
@@ -61,15 +75,14 @@ class SimufastPlayer {
                     </span>
                 </div>
                 <div style="display: none;" class="stats-section">
-                    <a class="stats-link" href="#">Stats</a>
+                    <a class="stats-link expanded" href="#">Stats</a>
                     <div class="stats"></div>
                 </div>
             </div>
         `;
 
-        const player = document.createElement('div');
-        document.body.appendChild(player);
-        player.innerHTML = dom;
+        document.write(dom);
+        const player = document.querySelector('.simufast-player:last-child');
 
         this._progressText = player.getElementsByClassName('progress-text')[0];
         this._lastLogText = player.getElementsByClassName('last-log')[0];
@@ -103,9 +116,15 @@ class SimufastPlayer {
             if (this._stats.classList.contains('closed')) {
                 this._stats.classList.remove('closed');
                 this._stats.classList.add('open');
+
+                this._statsLink.classList.add('expanded');
+                this._statsLink.classList.remove('collapsed');
             } else {
                 this._stats.classList.remove('open');
                 this._stats.classList.add('closed');
+
+                this._statsLink.classList.add('collapsed');
+                this._statsLink.classList.remove('expanded');
             }
         })
     }
@@ -216,7 +235,9 @@ async function consitentHashDemo() {
 }
 
 async function moduloHashDemo() {
-    const player = new SimufastPlayer();
+    const player = new SimufastPlayer({
+        canvasHeight: 220
+    });
     const chRing = new ModuloHash({
         speedFn: () => player.getSpeed(),
         log: (text) => player.log(text)
@@ -231,7 +252,9 @@ async function moduloHashDemo() {
 }
 
 async function bubleSortDemo() {
-    const player = new SimufastPlayer();
+    const player = new SimufastPlayer({
+        canvasHeight: 120
+    });
     const items = new createVisualArray(randIntArray(9, 10, 99), {
         speedFn: () => player.getSpeed(),
         log: (text) => player.log(text)
@@ -244,7 +267,9 @@ async function bubleSortDemo() {
 }
 
 async function selectionSortDemo() {
-    const player = new SimufastPlayer();
+    const player = new SimufastPlayer({
+        canvasHeight: 120
+    });
     const items = new createVisualArray(randIntArray(9, 10, 99), {
         speedFn: () => player.getSpeed(),
         log: (text) => player.log(text)
@@ -456,9 +481,9 @@ class ModuloHash {
         this.speedFn = options.speedFn || (() => 1);
         this.visualConfig = {
             height: 400,
-            x: 300,
+            x: 250,
             y: 50,
-            nodeRadius: 400 / 20
+            nodeRadius: 20
         }
         this._initVisual();
     }
@@ -794,7 +819,10 @@ class VisualArray {
 
     _initVisual() {
         this.values = [...this._originalValues];
-        this.container = new createjs.Container();
+        this.container = new createjs.Container().set({
+            x: 20,
+            y: 20
+        });
         this.elements = [];
         this.nextElementX = 0;
         for (let i = 0; i < this.values.length; i++) {

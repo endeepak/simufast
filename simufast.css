@@ -6,6 +6,7 @@
     /* height: 580px; */
     margin-left: auto;
     margin-right: auto;
+    margin-bottom: 20px;
 }
 
 .simufast-player .control-bar {
@@ -67,9 +68,32 @@
 
 .simufast-player table {
     width: 100%;
+}
+
+.simufast-player table, .simufast-player td, .simufast-player th {
     text-align: center;
+}
+
+.simufast-player th {
+    font-weight: bold;
 }
 
 .simufast-player .stats:not(:empty) {
     margin-top: 10px;
+}
+
+.simufast-player .stats-link {
+    text-decoration: none;
+}
+
+.simufast-player .stats-link.expanded:before {
+    font-family: 'FontAwesome';
+    content: "\f078";
+    margin-right: 5px;
+}
+
+.simufast-player .stats-link.collapsed:before {
+    font-family: 'FontAwesome';
+    content: "\f054";
+    margin-right: 5px;
 }
