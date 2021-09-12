@@ -1,5 +1,6 @@
 /**
 Backlog:
+    - Show ring level stats, simulate remove node
     - Show detailed logs with auto scroll
     - Embeddable script like github gist
     - CDN build for simufast. Build npm module
@@ -181,19 +182,20 @@ async function consitentHashDemo1() {
         speedFn: () => player.getSpeed(),
         log: (text) => player.log(text)
     });
+    const simulation = new MultiNodeCacheSimulation(chRing);
     const keys = [...Array(100)].map(() => makeid(5)); // 100 unique keys
     const commands = [];
     for (let i = 1; i <= 4; i++) {
-        commands.push(() => chRing.addNode(`N${i}`));
+        commands.push(() => simulation.addNode(`N${i}`));
     }
-    // commands.push(() => chRing.removeNode(`N${randomInteger(1, 4)}`));
+    // commands.push(() => simulation.removeNode(`N${randomInteger(1, 4)}`));
     for (let i = 1; i < 500; i++) {
         const key = getRandomValueFromArray(keys);
-        commands.push(() => chRing.getOrFetch(key, () => `${key}'s value from data source`));
+        commands.push(() => simulation.getOrFetch(key, () => `${key}'s value from data source`));
     }
     await player.experiment({
         name: 'Consistent Hash',
-        drawable: chRing,
+        drawable: simulation,
         commands: commands
     });
 }
@@ -302,6 +304,106 @@ const objectsToTable = (stats) => {
     </table>
     `
 }
+
+class MultiNodeCacheSimulation {
+    constructor(nodeDecider) {
+        this.nodes = {};
+        this.nodeDecider = nodeDecider;
+    }
+
+    async addNode(nodeName) {
+        // this.log(`Adding node: ${nodeName}`)
+        const node = new CacheNode(nodeName);
+        this.nodes[nodeName] = node;
+        await this.nodeDecider.addNode(nodeName);
+    }
+
+    async removeNode(nodeName) {
+        delete this.nodes[nodeName];
+        await this.nodeDecider.removeNode(nodeName);
+    }
+
+    async getOrFetch(key, valueFetcher) {
+        // this.log(`Get key: ${key}`);
+        const nodeName = await this.nodeDecider.getNodeForKey(key);
+        const node = this.nodes[nodeName];
+        const value = await node.getOrFetch(key, valueFetcher);
+        return value;
+    }
+
+    async draw(stage) {
+        await this.nodeDecider.draw(stage);
+    }
+
+    reset() {
+        this.nodes = {};
+        this.nodeDecider.reset();
+    }
+
+    getNodeStats() {
+        return Object.keys(this.nodes).map((nodeName) => {
+            const node = this.nodes[nodeName];
+            return {
+                node: node.name,
+                keys: node.stats.keys,
+                hits: node.stats.hits,
+                misses: node.stats.misses,
+                hitRatio: node.stats.hits && node.stats.misses ? Math.round(node.stats.hits * 100 / (node.stats.hits + node.stats.misses)) : 0
+            }
+        });
+    }
+
+    getStatsHTML() {
+        return objectsToTable(this.getNodeStats());
+    }
+}
+
+class CacheNode {
+    constructor(name) {
+        this.name = name;
+        this.storage = {};
+        this.stats = {
+            keys: 0,
+            hits: 0,
+            misses: 0
+        };
+    }
+
+    async getOrFetch(key, valueFetcher) {
+        if (this.storage.hasOwnProperty(key)) {
+            this.stats.hits += 1;
+            return this.storage[key];
+        } else {
+            const value = await valueFetcher();
+            this.storage[key] = value;
+            this.stats.keys += 1;
+            this.stats.misses += 1;
+        }
+    }
+
+    getKeys() {
+        return Object.keys(this.storage);
+    }
+}
+
+class ModuloHash {
+    constructor() {
+        this.nodes = [];
+    }
+
+    addNode(nodeName) {
+
+    }
+
+    removeNode(nodeName) {
+
+    }
+
+    getNodeForKey(key) {
+
+    }
+}
+
 class ConsitentHashRing {
     constructor(options) {
         this.config = {
@@ -321,7 +423,6 @@ class ConsitentHashRing {
 
     _initVisual() {
         const { ringX, ringY, ringRadius } = this.visualConfig;
-        this.nodes = [];
         this.nodeReplicas = [];
         this.container = new createjs.Container();
         const ring = new createjs.Shape();
@@ -331,14 +432,12 @@ class ConsitentHashRing {
 
     async addNode(nodeName) {
         this.log(`Adding node: ${nodeName}`)
-        const node = new ConsitentHashNode(nodeName);
-        this.nodes.push(node);
         const drawPromises = [];
         for (let replicaNum = 1; replicaNum <= this.config.nodeReplcationFactor; replicaNum++) {
             const replicaName = `${nodeName}-${replicaNum}`
             const position = this._getPosition(replicaName);
             const point = this._getCircumferencePointAtPosition(position);
-            const nodeReplica = new ConsitentHashNodeReplica(node, position, {
+            const nodeReplica = new ConsitentHashNodeReplica(nodeName, position, {
                 x: point.x,
                 y: point.y,
                 radius: this.visualConfig.ringRadius / 10,
@@ -352,11 +451,7 @@ class ConsitentHashRing {
     }
 
     async removeNode(nodeName) {
-        const nodeIndex = this.nodes.findIndex(node => node.name === nodeName);
-        if (nodeIndex === -1) return;
-
-        const nodeReplicasOfNode = this.nodeReplicas.filter(nodeReplica => nodeReplica.node === this.nodes[nodeIndex]);
-        this.nodes.splice(nodeIndex, 1);
+        const nodeReplicasOfNode = this.nodeReplicas.filter(nodeReplica => nodeReplica.node === nodeName);
         const undrawPromises = [];
         for (const nodeReplica of nodeReplicasOfNode) {
             this._bringNodeReplicaToFront(nodeReplica);
@@ -381,23 +476,22 @@ class ConsitentHashRing {
         return this.nodeReplicas[0];
     }
 
-    async getOrFetch(key, valueFetcher) {
+    async getNodeForKey(key) {
         this.log(`Get key: ${key}`);
         const position = this._getPosition(key);
         const nodeReplica = this._getNodeReplicaNextTo(position);
-        const value = await nodeReplica.node.getOrFetch(key, valueFetcher);
 
-        await this._visualiseGetOrFetch(key, position, nodeReplica);
+        await this._visualiseNodeForKey(key, position, nodeReplica);
 
-        return value;
+        return nodeReplica.node;
     }
 
     _bringNodeReplicaToFront(nodeReplica) {
         this.container.setChildIndex(nodeReplica.container, this.container.numChildren - 1);
     }
 
-    async _visualiseGetOrFetch(key, position, nodeReplica) {
-        const { ringX, ringY, ringRadius } = this.visualConfig;
+    async _visualiseNodeForKey(key, position, nodeReplica) {
+        const { ringRadius } = this.visualConfig;
         this._bringNodeReplicaToFront(nodeReplica);
 
         const textPoint = this._getCircumferencePointAtPosition(position);
@@ -410,22 +504,6 @@ class ConsitentHashRing {
             nodeReplica.highlight()
         ])
         this.container.removeChild(text);
-    }
-
-    getNodeStats() {
-        return this.nodes.map((node) => {
-            return {
-                node: node.name,
-                keys: node.stats.keys,
-                hits: node.stats.hits,
-                misses: node.stats.misses,
-                hitRatio: node.stats.hits && node.stats.misses ?  Math.round(node.stats.hits * 100 / (node.stats.hits + node.stats.misses)) : 0
-            }
-        });
-    }
-
-    getStatsHTML() {
-        return objectsToTable(this.getNodeStats());
     }
 
     _getCircumferencePointAtPosition(position) {
@@ -462,7 +540,7 @@ class ConsitentHashNodeReplica {
 
     _createVisual() {
         const { x, y, radius } = this.visualConfig;
-        const nodeName = this.node.name;
+        const nodeName = this.node;
 
         this.container = new createjs.Container();
         const circle = new createjs.Shape();
@@ -490,42 +568,6 @@ class ConsitentHashNodeReplica {
     async undraw(parent) {
         await tweenPromise(createjs.Tween.get(this.container).to({ scaleX: 0, scaleY: 0 }, 1000 / this.speedFn(), createjs.Ease.linear));
         parent.removeChild(this.container);
-    }
-}
-
-class ConsitentHashNode {
-    constructor(name) {
-        this.name = name;
-        this.storage = {};
-        this.stats = {
-            keys: 0,
-            hits: 0,
-            misses: 0
-        };
-    }
-
-    _createVisual() {
-        this.container = new createjs.Container();
-    }
-
-    async getOrFetch(key, valueFetcher) {
-        if (this.storage.hasOwnProperty(key)) {
-            this.stats.hits += 1;
-            return this.storage[key];
-        } else {
-            const value = await valueFetcher();
-            this.storage[key] = value;
-            this.stats.keys += 1;
-            this.stats.misses += 1;
-        }
-    }
-
-    getKeys() {
-        return Object.keys(this.storage);
-    }
-
-    toString() {
-        return this.name;
     }
 }
 
