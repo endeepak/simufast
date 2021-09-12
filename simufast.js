@@ -1,8 +1,5 @@
 /**
 Backlog:
-    - Configurable canvas size
-    - Visual array positioning
-    - Mobile friendly sizing
     - CDN build for simufast. Build npm module
 TBD:
     - Interactive commands for readers
@@ -18,7 +15,6 @@ class SimufastPlayer {
         this._play = false;
         this._speed = 1;
         const defaultOptions = {
-            canvasWidth: 500,
             canvasHeight: 500
         }
         this.options = {
@@ -37,7 +33,7 @@ class SimufastPlayer {
     }
 
     updateProgress(progress) {
-        this._progressText.innerHTML = `Completed: ${progress.completed}/${progress.total}`;
+        this._progressText.innerHTML = `Progress: ${progress.completed}/${progress.total}`;
     }
 
     _allowReplay() {
@@ -48,11 +44,10 @@ class SimufastPlayer {
     }
 
     _renderDOM() {
-        const { canvasHeight, canvasWidth } = this.options;
         const dom = `
             <div class="simufast-player">
                 <div class="last-log"></div>
-                <canvas id="canvas" width="${canvasWidth}" height="${canvasHeight}"></canvas>
+                <canvas id="canvas"></canvas>
                 <div class="control-bar">
                     <span class="speed">
                         <label>Speed:</label>
@@ -95,6 +90,11 @@ class SimufastPlayer {
         this._statsLink = player.getElementsByClassName('stats-link')[0];
         this._stats = player.getElementsByClassName('stats')[0];
 
+        const playerParentRect = player.parentElement.getBoundingClientRect();
+        this.width = Math.min(playerParentRect.width, 500);
+        player.style.width = `${this.width}px`;
+        this._canvas.width = this.width;
+
         createjs.Ticker.framerate = 60;
         createjs.Ticker.addEventListener("tick", this._stage);
 
@@ -134,6 +134,10 @@ class SimufastPlayer {
             this._statsSection.style.display = '';
         }
         this._stats.innerHTML = statsHTML;
+    }
+
+    getStage() {
+        return this._stage;
     }
 
     _showSpinner() {
@@ -176,8 +180,8 @@ class SimufastPlayer {
         const { name, drawable, commands } = experiment;
         this._experiment = experiment;
         this.log(name);
-        drawable.draw(this._stage);
         const totalCommands = commands.length;
+        this.updateProgress({ total: totalCommands, completed: 0 });
         const commandsQueue = [...commands];
         await this._pauseIfRequired();
         while (commandsQueue.length > 0) {
@@ -221,7 +225,7 @@ const cacheDemoCommands = (simulation) => {
 
 async function consitentHashDemo() {
     const player = new SimufastPlayer();
-    const chRing = new ConsitentHashRing({
+    const chRing = new ConsitentHashRing(player.getStage(), {
         speedFn: () => player.getSpeed(),
         log: (text) => player.log(text)
     });
@@ -235,10 +239,8 @@ async function consitentHashDemo() {
 }
 
 async function moduloHashDemo() {
-    const player = new SimufastPlayer({
-        canvasHeight: 220
-    });
-    const chRing = new ModuloHash({
+    const player = new SimufastPlayer();
+    const chRing = new ModuloHash(player.getStage(), {
         speedFn: () => player.getSpeed(),
         log: (text) => player.log(text)
     });
@@ -252,10 +254,8 @@ async function moduloHashDemo() {
 }
 
 async function bubleSortDemo() {
-    const player = new SimufastPlayer({
-        canvasHeight: 120
-    });
-    const items = new createVisualArray(randIntArray(9, 10, 99), {
+    const player = new SimufastPlayer();
+    const items = new createVisualArray(player.getStage(), randIntArray(9, 10, 99), {
         speedFn: () => player.getSpeed(),
         log: (text) => player.log(text)
     });
@@ -270,7 +270,7 @@ async function selectionSortDemo() {
     const player = new SimufastPlayer({
         canvasHeight: 120
     });
-    const items = new createVisualArray(randIntArray(9, 10, 99), {
+    const items = new createVisualArray(player.getStage(), randIntArray(9, 10, 99), {
         speedFn: () => player.getSpeed(),
         log: (text) => player.log(text)
     });
@@ -476,21 +476,25 @@ class CacheNode {
 }
 
 class ModuloHash {
-    constructor(options) {
+    constructor(stage, options) {
+        this.stage = stage;
         this.log = options.log || console.log;
         this.speedFn = options.speedFn || (() => 1);
-        this.visualConfig = {
-            height: 400,
-            x: 250,
-            y: 50,
-            nodeRadius: 20
-        }
         this._initVisual();
     }
 
     _initVisual() {
         this.nodes = [];
         this.container = new createjs.Container();
+        this.stage.canvas.height = this.stage.canvas.width / 2;
+        const margin = this.stage.canvas.height / 10;
+        const nodeRadius = this.stage.canvas.width / (2 * 10);
+        this.visualConfig = {
+            x: this.stage.canvas.width - margin,
+            y: margin,
+            nodeRadius: nodeRadius
+        }
+        this.stage.addChild(this.container);
     }
 
     async addNode(nodeName) {
@@ -509,7 +513,7 @@ class ModuloHash {
     _getPontForNodeIndex(nodeIndex) {
         return {
             x: this.visualConfig.x - this.visualConfig.nodeRadius,
-            y: this.visualConfig.y + (2 * nodeIndex) * this.visualConfig.nodeRadius,
+            y: this.visualConfig.y + (2 * nodeIndex) * this.visualConfig.nodeRadius + this.visualConfig.nodeRadius,
         }
     }
 
@@ -546,47 +550,41 @@ class ModuloHash {
         this.container.removeChild(text);
     }
 
-
-    async draw(parent) {
-        this._parent = parent;
-        for (const node of this.nodes) {
-            await node.draw(this.container);
-        }
-        parent.addChild(this.container);
-    }
-
     reset() {
-        if (!this._parent) return;
-        this._parent.removeChild(this.container);
-        this.nodes = [];
+        this.stage.removeChild(this.container);
         this._initVisual();
     }
 }
 
 class ConsitentHashRing {
-    constructor(options) {
+    constructor(stage, options) {
+        this.stage = stage;
         this.config = {
             maxSlots: 1000,
             nodeReplcationFactor: 16,
         };
         this.log = options.log || console.log;
         this.speedFn = options.speedFn || (() => 1);
-
-        this.visualConfig = {
-            ringX: 250,
-            ringY: 250,
-            ringRadius: 200
-        }
         this._initVisual();
     }
 
     _initVisual() {
-        const { ringX, ringY, ringRadius } = this.visualConfig;
+        const margin = this.stage.canvas.width / 10;
+        this.stage.canvas.height = this.stage.canvas.width;
+        const ringRadius = (this.stage.canvas.width / 2) - margin;
+        const ringX = margin + ringRadius;
+        const ringY = margin + ringRadius;
+        this.visualConfig = {
+            ringX: ringX,
+            ringY: ringY,
+            ringRadius: ringRadius
+        }
         this.nodeReplicas = [];
         this.container = new createjs.Container();
         const ring = new createjs.Shape();
         ring.graphics.setStrokeStyle(4).beginStroke("#66a841").drawCircle(ringX, ringY, ringRadius);
         this.container.addChild(ring);
+        this.stage.addChild(this.container);
     }
 
     async addNode(nodeName) {
@@ -674,17 +672,8 @@ class ConsitentHashRing {
         return { x, y };
     }
 
-    async draw(parent) {
-        this._parent = parent;
-        for (const nodeReplica of this.nodeReplicas) {
-            await nodeReplica.draw(this.container);
-        }
-        parent.addChild(this.container);
-    }
-
     reset() {
-        if (!this._parent) return;
-        this._parent.removeChild(this.container);
+        this.stage.removeChild(this.container);
         this._initVisual();
     }
 }
@@ -778,8 +767,8 @@ const randomInteger = (min, max) => {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-const createVisualArray = function (array, options) {
-    const visualArray = new VisualArray(array, options);
+const createVisualArray = function (stage, array, options) {
+    const visualArray = new VisualArray(stage, array, options);
     return new Proxy(visualArray, {
         get: function (target, property) {
             return target._get_(property);
@@ -806,22 +795,24 @@ const tweenPromise = (tween) => {
     rerender all or override methods? or render diff->how to track diff?
 */
 class VisualArray {
-    constructor(values, options) {
+    constructor(stage, values, options) {
+        this.stage = stage;
         this._originalValues = values || [];
         this.options = options || {};
         this.speedFn = this.options.speedFn || (() => 1);
-        this.y = 0;
-        this.elementDisplaySize = 50;
-        this.indexTrackerDisplaySize = 30;
 
         this._initVisual();
     }
 
     _initVisual() {
+        this.y = 0;
+        const margin = this.stage.canvas.width / 20;
+        this.elementDisplaySize = this.stage.canvas.width / 10;
+        this.indexTrackerDisplaySize = this.stage.canvas.width / 20;
         this.values = [...this._originalValues];
         this.container = new createjs.Container().set({
-            x: 20,
-            y: 20
+            x: margin,
+            y: margin
         });
         this.elements = [];
         this.nextElementX = 0;
@@ -831,6 +822,10 @@ class VisualArray {
             this.nextElementX += this.elementDisplaySize;
         }
         this.indexTrackers = {};
+        for (const element of this.elements) {
+            element.draw(this.container);
+        }
+        this.stage.addChild(this.container);
     }
 
     _get_(name) {
@@ -865,17 +860,8 @@ class VisualArray {
         await Promise.all([iPromise, jPromise]);
     }
 
-    draw(parent) {
-        this._parent = parent;
-        for (const element of this.elements) {
-            element.draw(this.container);
-        }
-        parent.addChild(this.container);
-    }
-
     reset() {
-        if (!this._parent) return;
-        this._parent.removeChild(this.container);
+        this.stage.removeChild(this.container);
         this._initVisual();
     }
 
