@@ -46,7 +46,7 @@
     text-align: right;
 }
 
-.simufast-player .stats-section {
+.simufast-player .additional-info {
     padding: 10px;
     background: aliceblue;
 }
@@ -94,4 +94,12 @@
     font-family: 'FontAwesome';
     content: "\f054";
     margin-right: 5px;
+}
+
+.attribution {
+    float: right;
+}
+
+.attribution i {
+    color: goldenrod;
 }

@@ -60,9 +60,12 @@ export class SimufastPlayer {
                         <i style="display: none;" class="spinner fa fa-spinner fa-spin"></i>
                     </span>
                 </div>
-                <div style="display: none;" class="stats-section">
-                    <a class="stats-link expanded" href="#">Stats</a>
-                    <div class="stats"></div>
+                <div class="additional-info">
+                    <a class="stats-link collapsed" href="#">Stats</a>
+                    <span class="attribution" >
+                        <i class="fa fa-bolt"></i> by <a class="attribution-link" target="_new" href="https://github.com/endeepak/simufast">Simufast</a>
+                    </span>
+                    <div class="stats closed">No stats yet</div>
                 </div>
             </div>
         `;
@@ -77,7 +80,6 @@ export class SimufastPlayer {
         this._playPauseButton = player.getElementsByClassName('play-pause-button')[0];
         this._spinner = player.getElementsByClassName('spinner')[0];
         this._speedSelect = player.getElementsByClassName('speed-select')[0];
-        this._statsSection = player.getElementsByClassName('stats-section')[0];
         this._statsLink = player.getElementsByClassName('stats-link')[0];
         this._stats = player.getElementsByClassName('stats')[0];
 
@@ -121,9 +123,6 @@ export class SimufastPlayer {
     }
 
     updateStats(statsHTML) {
-        if (statsHTML) {
-            this._statsSection.style.display = '';
-        }
         this._stats.innerHTML = statsHTML;
     }
 
