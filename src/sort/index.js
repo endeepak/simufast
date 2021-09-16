@@ -1,4 +1,4 @@
-export const bubleSort = async (items, options) => {
+export const bubbleSort = async (items, options) => {
     for (let i = 0; i < items.length; i++) {
         items.trackIndex("end", () => items.length - i - 1);
         for (let j = 0; j < items.length - i - 1; j++) {

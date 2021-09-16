@@ -1,6 +1,8 @@
 /**
 Backlog:
     - CDN build for simufast. Build npm module
+    - Option to show stats by default
+    - Option to hide attribution
 TBD:
     - Interactive commands for readers
     - Embeddable script like github gist
@@ -11,13 +13,22 @@ TBD:
 */
 const { SimufastPlayer } = require('./core/simufast-player');
 const demos = require('./demos');
+const routing = require('./routing');
+const cache = require('./cache');
+const utils = require('./utils');
+
+const run = async (fn, options) => {
+    const player = new simufast.SimufastPlayer(options);
+    await fn(player);
+};
 
 module.exports = {
     SimufastPlayer,
-    demos
+    demos,
+    routing,
+    cache,
+    utils,
+    run
 }
-
-window.simufast = module.exports;
-
 
 

@@ -25,6 +25,7 @@ export class SimufastPlayer {
 
     updateProgress(progress) {
         this._progressText.innerHTML = `Progress: ${progress.completed}/${progress.total}`;
+        this.updateStats();
     }
 
     _allowReplay() {
@@ -65,7 +66,7 @@ export class SimufastPlayer {
                     <span class="attribution" >
                         <i class="fa fa-bolt"></i> by <a class="attribution-link" target="_new" href="https://github.com/endeepak/simufast">Simufast</a>
                     </span>
-                    <div class="stats closed">No stats yet</div>
+                    <div class="stats closed"></div>
                 </div>
             </div>
         `;
@@ -122,8 +123,14 @@ export class SimufastPlayer {
         })
     }
 
-    updateStats(statsHTML) {
-        this._stats.innerHTML = statsHTML;
+    updateStats() {
+        const drawable = this._experiment.drawable;
+        if (drawable.getStatsHTML) {
+            this._statsLink.style.display = '';
+            this._stats.innerHTML = drawable.getStatsHTML();
+        } else {
+            this._statsLink.style.display = 'none';
+        }
     }
 
     getStage() {
@@ -180,7 +187,6 @@ export class SimufastPlayer {
                 onStepCompleted: this._pauseIfRequired.bind(this)
             });
             this.updateProgress({ total: totalCommands, completed: totalCommands - commandsQueue.length });
-            this.updateStats(drawable.getStatsHTML ? drawable.getStatsHTML() : '');
             await this._pauseIfRequired();
         }
         this._allowReplay();

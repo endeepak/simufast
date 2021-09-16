@@ -4,28 +4,30 @@ const { HashNode } = require('./hash-node');
 const { tweenPromise, getHashCode, MD5 } = require('../utils');
 
 export class ModuloHash {
-    constructor(stage, options) {
-        this.stage = stage;
-        this.log = options.log || console.log;
-        this.speedFn = options.speedFn || (() => 1);
+    constructor(player, options) {
+        this.stage = player.getStage();
+        this.options = options || {};
+        this.log = player.log.bind(player);
+        this.speedFn = player.getSpeed.bind(player);
         this._initVisual();
     }
 
     _initVisual() {
         this.nodes = [];
         this.container = new Container();
-        this.stage.canvas.height = this.stage.canvas.width / 2;
-        const margin = this.stage.canvas.height / 10;
+        const maxNodes = this.options.maxNodes || 3;
         const nodeRadius = this.stage.canvas.width / (2 * 10);
+        const margin = nodeRadius;
+        this.stage.canvas.height = (maxNodes * nodeRadius * 2) + (margin * 2);
         this.visualConfig = {
-            x: this.stage.canvas.width - margin,
+            x: this.stage.canvas.width - (3 * margin),
             y: margin,
             nodeRadius: nodeRadius
         }
         this.stage.addChild(this.container);
     }
 
-    async addNode(nodeName) {
+    async addNode(nodeName, options) {
         this.log(`Adding node: ${nodeName}`);
         const point = this._getPontForNodeIndex(this.nodes.length);
         const node = new HashNode(nodeName, undefined, {
@@ -35,7 +37,7 @@ export class ModuloHash {
             speedFn: this.speedFn
         });
         this.nodes.push(node);
-        await node.draw(this.container);
+        await node.draw(this.container, options);
     }
 
     _getPontForNodeIndex(nodeIndex) {
@@ -58,7 +60,7 @@ export class ModuloHash {
     }
 
     async getNodeForKey(key) {
-        this.log(`Get key: ${key}`);
+        this.log(`Route key: ${key}`);
         const nodeIndex = getHashCode(MD5(key)) % this.nodes.length;
         const node = this.nodes[nodeIndex];
         await this._visualiseNodeForKey(key, nodeIndex, node);

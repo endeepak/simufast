@@ -1,3 +1,5 @@
+@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css"); 
+
 .simufast-player {
     display: flex;
     flex-direction: column;
@@ -46,7 +48,7 @@
     text-align: right;
 }
 
-.simufast-player .additional-info {
+.simufast-player .additional-info:not(:empty) {
     padding: 10px;
     background: aliceblue;
 }

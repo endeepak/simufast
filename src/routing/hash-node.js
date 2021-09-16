@@ -38,10 +38,12 @@ export class HashNode {
             .to({ x: point.x, y: point.y }, 1000 / this.speedFn(), Ease.linear));
     }
 
-    async draw(parent) {
+    async draw(parent, options = {}) {
         parent.addChild(this.container);
         const { x, y } = this.visualConfig;
-        await tweenPromise(Tween.get(this.container).to({ x: x, y: y }, 1000 / this.speedFn(), Ease.circIn));
+        const animate = options && options.animate !== undefined ? options.animate : true;
+        const animationDuration = animate ? 1000 / this.speedFn() : 0;
+        await tweenPromise(Tween.get(this.container).to({ x: x, y: y }, animationDuration, Ease.circIn));
     }
 
     async undraw(parent) {

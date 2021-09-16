@@ -4,15 +4,16 @@ const { HashNode } = require('./hash-node');
 const { tweenPromise, getHashCode, MD5 } = require('../utils');
 
 
-export class ConsitentHashRing {
-    constructor(stage, options) {
-        this.stage = stage;
+export class ConsistentHashRing {
+    constructor(player, options) {
+        this.stage = player.getStage();
+        this.options = options || {};
+        this.log = player.log.bind(player);
+        this.speedFn = player.getSpeed.bind(player);
         this.config = {
             maxSlots: 1000,
-            nodeReplcationFactor: 16,
+            nodeReplicationFactor: 16,
         };
-        this.log = options.log || console.log;
-        this.speedFn = options.speedFn || (() => 1);
         this._initVisual();
     }
 
@@ -38,7 +39,7 @@ export class ConsitentHashRing {
     async addNode(nodeName) {
         this.log(`Adding node: ${nodeName}`)
         const drawPromises = [];
-        for (let replicaNum = 1; replicaNum <= this.config.nodeReplcationFactor; replicaNum++) {
+        for (let replicaNum = 1; replicaNum <= this.config.nodeReplicationFactor; replicaNum++) {
             const replicaName = `${nodeName}-${replicaNum}`
             const position = this._getPosition(replicaName);
             const point = this._getCircumferencePointAtPosition(position);
@@ -83,7 +84,7 @@ export class ConsitentHashRing {
     }
 
     async getNodeForKey(key) {
-        this.log(`Get key: ${key}`);
+        this.log(`Route key: ${key}`);
         const position = this._getPosition(key);
         const nodeReplica = this._getNodeReplicaNextTo(position);
 

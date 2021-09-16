@@ -2,20 +2,30 @@ const { CacheNode } = require('./cache-node');
 const { objectsToTable } = require('../utils');
 
 export class MultiNodeCacheSimulation {
-    constructor(nodeDecider) {
-        this.nodes = {};
+    constructor(nodeDecider, options) {
         this.nodeDecider = nodeDecider;
+        this.options = options || {};
+        this._init();
+    }
+
+    _init() {
+        this.nodes = {};
         this.stats = {
             hits: 0,
             misses: 0
         }
+        const nodes = this.options.nodes || [];
+        const animate = this.options.animate || false;
+        for (const node of nodes) {
+            this.addNode(node, { animate });
+        }
     }
 
-    async addNode(nodeName) {
+    async addNode(nodeName, options) {
         // this.log(`Adding node: ${nodeName}`)
         const node = new CacheNode(nodeName);
         this.nodes[nodeName] = node;
-        await this.nodeDecider.addNode(nodeName);
+        await this.nodeDecider.addNode(nodeName, options);
     }
 
     async removeNode(nodeName) {
@@ -24,7 +34,7 @@ export class MultiNodeCacheSimulation {
     }
 
     async getOrFetch(key, valueFetcher) {
-        // this.log(`Get key: ${key}`);
+        // this.log(`Route key: ${key}`);
         const nodeName = await this.nodeDecider.getNodeForKey(key);
         const node = this.nodes[nodeName];
         const result = await node.getOrFetch(key, valueFetcher);
@@ -41,8 +51,8 @@ export class MultiNodeCacheSimulation {
     }
 
     reset() {
-        this.nodes = {};
         this.nodeDecider.reset();
+        this._init();
     }
 
     _getHitRatio(hits, misses) {

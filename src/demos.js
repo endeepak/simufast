@@ -1,43 +1,39 @@
 const { randStringArray, getRandomValueFromArray, randIntArray } = require('./utils');
 const { SimufastPlayer } = require('./core/simufast-player');
-const { ConsitentHashRing } = require('./hash/consitent-hash-ring');
-const { ModuloHash } = require('./hash/modulo-hash');
+const { ConsistentHashRing } = require('./routing/consistent-hash-ring');
+const { ModuloHash } = require('./routing/modulo-hash');
 const { MultiNodeCacheSimulation } = require('./cache/multi-node-cache-simulation');
 const { createVisualArray } = require('./array/visual-array');
-const { bubleSort, selectionSort } = require('./sort');
+const { bubbleSort, selectionSort } = require('./sort');
 
 const cacheDemoCommands = (simulation) => {
     const keys = randStringArray(100);
     const commands = [];
-    commands.push(() => simulation.addNode('N1'));
-    commands.push(() => simulation.addNode('N2'));
-    commands.push(() => simulation.addNode('N3'));
-    commands.push(() => simulation.addNode('N4'));
-    for (let i = 1; i < 100; i++) {
+    commands.push(() => simulation.addNode('S1'));
+    commands.push(() => simulation.addNode('S2'));
+    commands.push(() => simulation.addNode('S3'));
+    for (let i = 1; i <= 100; i++) {
         const key = getRandomValueFromArray(keys);
         commands.push(() => simulation.getOrFetch(key, () => `${key}'s value from data source`));
     }
-    commands.push(() => simulation.removeNode('N3'));
-    commands.push(() => simulation.addNode('N5'));
-    for (let i = 1; i < 100; i++) {
+    commands.push(() => simulation.removeNode('S2'));
+    commands.push(() => simulation.addNode('S4'));
+    for (let i = 1; i <= 100; i++) {
         const key = getRandomValueFromArray(keys);
         commands.push(() => simulation.getOrFetch(key, () => `${key}'s value from data source`));
     }
-    commands.push(() => simulation.removeNode('N1'));
-    commands.push(() => simulation.addNode('N6'));
-    for (let i = 1; i < 100; i++) {
+    commands.push(() => simulation.removeNode('S1'));
+    commands.push(() => simulation.addNode('S5'));
+    for (let i = 1; i <= 100; i++) {
         const key = getRandomValueFromArray(keys);
         commands.push(() => simulation.getOrFetch(key, () => `${key}'s value from data source`));
     }
     return commands;
 }
 
-export async function consitentHashDemo() {
+export async function consistentHashDemo() {
     const player = new SimufastPlayer();
-    const chRing = new ConsitentHashRing(player.getStage(), {
-        speedFn: () => player.getSpeed(),
-        log: (text) => player.log(text)
-    });
+    const chRing = new ConsistentHashRing(player);
     const simulation = new MultiNodeCacheSimulation(chRing);
     const commands = cacheDemoCommands(simulation);
     await player.experiment({
@@ -49,10 +45,7 @@ export async function consitentHashDemo() {
 
 export async function moduloHashDemo() {
     const player = new SimufastPlayer();
-    const moduloHash = new ModuloHash(player.getStage(), {
-        speedFn: () => player.getSpeed(),
-        log: (text) => player.log(text)
-    });
+    const moduloHash = new ModuloHash(player);
     const simulation = new MultiNodeCacheSimulation(moduloHash);
     const commands = cacheDemoCommands(simulation);
     await player.experiment({
@@ -62,27 +55,19 @@ export async function moduloHashDemo() {
     });
 }
 
-export async function bubleSortDemo() {
+export async function bubbleSortDemo() {
     const player = new SimufastPlayer();
-    const items = new createVisualArray(player.getStage(), randIntArray(9, 10, 99), {
-        speedFn: () => player.getSpeed(),
-        log: (text) => player.log(text)
-    });
+    const items = new createVisualArray(player, randIntArray(9, 10, 99));
     await player.experiment({
-        name: 'Buble Sort',
+        name: 'Bubble Sort',
         drawable: items,
-        commands: [(options) => bubleSort(items, options)]
+        commands: [(options) => bubbleSort(items, options)]
     });
 }
 
 export async function selectionSortDemo() {
-    const player = new SimufastPlayer({
-        canvasHeight: 120
-    });
-    const items = new createVisualArray(player.getStage(), randIntArray(9, 10, 99), {
-        speedFn: () => player.getSpeed(),
-        log: (text) => player.log(text)
-    });
+    const player = new SimufastPlayer();
+    const items = new createVisualArray(player, randIntArray(9, 10, 99));
     await player.experiment({
         name: 'Selection Sort',
         drawable: items,

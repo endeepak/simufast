@@ -4,12 +4,12 @@ const { tweenPromise, swap } = require('../utils');
 const { ArrayElement } = require('./array-element');
 
 export class VisualArray {
-    constructor(stage, values, options) {
-        this.stage = stage;
-        this._originalValues = values || [];
+    constructor(player, values, options) {
+        this.stage = player.getStage();
         this.options = options || {};
-        this.speedFn = this.options.speedFn || (() => 1);
-
+        this.log = player.log.bind(player);
+        this.speedFn = player.getSpeed.bind(player);
+        this._originalValues = values || [];
         this._initVisual();
     }
 
@@ -112,8 +112,8 @@ export class VisualArray {
     }
 }
 
-export const createVisualArray = function (stage, array, options) {
-    const visualArray = new VisualArray(stage, array, options);
+export const createVisualArray = function (player, array, options) {
+    const visualArray = new VisualArray(player, array, options);
     return new Proxy(visualArray, {
         get: function (target, property) {
             return target._get_(property);
