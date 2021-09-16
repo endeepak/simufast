@@ -36,7 +36,7 @@ export class ConsistentHashRing {
         this.stage.addChild(this.container);
     }
 
-    async addNode(nodeName) {
+    async addNode(nodeName, options) {
         this.log(`Adding node: ${nodeName}`)
         const drawPromises = [];
         for (let replicaNum = 1; replicaNum <= this.config.nodeReplicationFactor; replicaNum++) {
@@ -50,7 +50,7 @@ export class ConsistentHashRing {
                 speedFn: this.speedFn
             });
             this.nodeReplicas.push(nodeReplica);
-            drawPromises.push(nodeReplica.draw(this.container));
+            drawPromises.push(nodeReplica.draw(this.container, options));
         }
         this.nodeReplicas.sort((n1, n2) => n1.position - n2.position);
         await Promise.all(drawPromises);
