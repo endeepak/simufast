@@ -9,8 +9,8 @@ The idea of simulation was inspired by the amazing interactive posts like [this]
 * Include the simufast JS and CSS files in your html page.
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simufast@0.0.1/src/simufast.css">
-<script src="https://cdn.jsdelivr.net/npm/simufast@0.0.1/dist/main.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simufast@0.0.2/src/simufast.css">
+<script src="https://cdn.jsdelivr.net/npm/simufast@0.0.2/dist/main.js"></script>
 ```
 
 > Note: This project is in the proof of concept stage. The APIs may change. Please use specific version of the js and css files to avoid breaking changes.

@@ -1,7 +1,7 @@
 {
   "name": "simufast",
-  "version": "0.0.1",
-  "description": "Simulate fast using visual data structures",
+  "version": "0.0.2",
+  "description": "Simulate fast using visual abstractions",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -22,7 +22,7 @@
   "bugs": {
     "url": "https://github.com/endeepak/simufast/issues"
   },
-  "homepage": "https://github.com/endeepak/simufast#readme",
+  "homepage": "https://github.com/endeepak/simufast",
   "devDependencies": {
     "webpack": "^5.52.1",
     "webpack-cli": "^4.8.0"
