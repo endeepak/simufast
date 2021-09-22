@@ -3,15 +3,18 @@ const { Ticker } = require('@createjs/tweenjs');
 
 export class SimufastPlayer {
     constructor(options) {
+        this._options = options || {};
         this._play = false;
-        this._speed = 1;
-        const defaultOptions = {
-            canvasHeight: 500
+        this._speed = this._options.speed || 1;
+        this._speedOptions = {
+            '0.25x': 0.25,
+            '0.5x': 0.5,
+            'Normal': 1,
+            '2x': 2,
+            '3x': 3,
+            '5x': 5,
+            'Max': 99999,
         }
-        this.options = {
-            ...defaultOptions,
-            ...options
-        };
         this._renderDOM();
     }
 
@@ -36,6 +39,10 @@ export class SimufastPlayer {
     }
 
     _renderDOM() {
+        const speedOptionsDom = Object.keys(this._speedOptions).map((name) => {
+            return `<option value="${this._speedOptions[name]}" ${this._speedOptions[name] === this._speed ? 'selected' : ''}>${name}</option>`;
+        }).join('\n');
+        const statsExpanded = this._options.statsExpanded || false;
         const dom = `
             <div class="simufast-player">
                 <div class="last-log"></div>
@@ -44,13 +51,7 @@ export class SimufastPlayer {
                     <span class="speed">
                         <label>Speed:</label>
                         <select class="speed-select">
-                            <option value="0.25">0.25x</option>
-                            <option value="0.5">0.5x</option>
-                            <option value="1" selected>Normal</option>
-                            <option value="2">2x</option>
-                            <option value="3">3x</option>
-                            <option value="5">5x</option>
-                            <option value="999999">Max</option>
+                            ${speedOptionsDom}
                         </select>
                     </span>
                     <span class="actions">
@@ -62,11 +63,11 @@ export class SimufastPlayer {
                     </span>
                 </div>
                 <div class="additional-info">
-                    <a class="stats-link collapsed" href="#">Stats</a>
+                    <a class="stats-link ${statsExpanded ? 'expanded' : 'collapsed'}" href="#">Stats</a>
                     <span class="attribution" >
                         <i class="fa fa-bolt"></i> by <a class="attribution-link" target="_new" href="https://github.com/endeepak/simufast">Simufast</a>
                     </span>
-                    <div class="stats closed"></div>
+                    <div class="stats ${statsExpanded ? 'open' : 'closed'}"></div>
                 </div>
             </div>
         `;

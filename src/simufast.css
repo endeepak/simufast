@@ -98,10 +98,15 @@
     margin-right: 5px;
 }
 
-.attribution {
+.simufast-player .attribution {
     float: right;
+    font-size: 90%;
 }
 
-.attribution i {
+.simufast-player .attribution i {
     color: goldenrod;
+}
+
+.simufast-player .attribution-link {
+    text-decoration: none;
 }

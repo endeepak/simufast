@@ -4,7 +4,7 @@ const { HashNode } = require('./hash-node');
 const { tweenPromise, getHashCode, MD5 } = require('../utils');
 
 
-export class ConsistentHashRing {
+export class ConsistentHash {
     constructor(player, options) {
         this.stage = player.getStage();
         this.options = options || {};
@@ -12,7 +12,7 @@ export class ConsistentHashRing {
         this.speedFn = player.getSpeed.bind(player);
         this.config = {
             maxSlots: 1000,
-            nodeReplicationFactor: 16,
+            nodeReplicationFactor: this.options.nodeReplicationFactor || 16,
         };
         this._initVisual();
     }
@@ -84,7 +84,7 @@ export class ConsistentHashRing {
     }
 
     async getNodeForKey(key) {
-        this.log(`Route key: ${key}`);
+        this.log(`Routing key: ${key}`);
         const position = this._getPosition(key);
         const nodeReplica = this._getNodeReplicaNextTo(position);
 
@@ -102,12 +102,17 @@ export class ConsistentHashRing {
         this._bringNodeReplicaToFront(nodeReplica);
 
         const textPoint = this._getCircumferencePointAtPosition(position);
+        const pointsInBetween = this.__getCircumferencePointsBetweenPositions(4, position, nodeReplica.position);
         const text = new Text(key, `${ringRadius / 10}px Arial`);
         this.container.addChild(text);
         await Promise.all([
             tweenPromise(Tween.get(text)
-                // .to({ x: textPoint.x, y: textPoint.y }, 1000 * 0, Ease.linear)
-                .to({ x: nodeReplica.visualConfig.x, y: nodeReplica.visualConfig.y }, 1000 / this.speedFn(), Ease.linear)),
+                .to({ x: textPoint.x, y: textPoint.y }, 500 / this.speedFn(), Ease.linear)
+                .to({ x: pointsInBetween[0].x, y: pointsInBetween[0].y }, 100 / this.speedFn(), Ease.circIn)
+                .to({ x: pointsInBetween[1].x, y: pointsInBetween[1].y }, 100 / this.speedFn(), Ease.circIn)
+                .to({ x: pointsInBetween[2].x, y: pointsInBetween[2].y }, 100 / this.speedFn(), Ease.circIn)
+                .to({ x: pointsInBetween[3].x, y: pointsInBetween[3].y }, 100 / this.speedFn(), Ease.circIn)
+                .to({ x: nodeReplica.visualConfig.x, y: nodeReplica.visualConfig.y }, 100 / this.speedFn(), Ease.circIn)),
             nodeReplica.highlight()
         ])
         this.container.removeChild(text);
@@ -119,6 +124,17 @@ export class ConsistentHashRing {
         const x = ringX + ringRadius * Math.cos(angleRadian);
         const y = ringY + ringRadius * Math.sin(angleRadian);
         return { x, y };
+    }
+
+    __getCircumferencePointsBetweenPositions(n, pos1, pos2) {
+        // debugger;
+        const diff = ((pos2 - pos1) + this.config.maxSlots) % this.config.maxSlots;
+        const step = diff / (n + 1);
+        const points = [];
+        for (let i = 1; i <= n; i++) {
+            points.push(this._getCircumferencePointAtPosition(pos1 + (i * step)));
+        }
+        return points;
     }
 
     reset() {

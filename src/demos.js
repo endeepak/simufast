@@ -1,6 +1,6 @@
 const { randStringArray, getRandomValueFromArray, randIntArray } = require('./utils');
 const { SimufastPlayer } = require('./core/simufast-player');
-const { ConsistentHashRing } = require('./routing/consistent-hash-ring');
+const { ConsistentHash } = require('./routing/consistent-hash');
 const { ModuloHash } = require('./routing/modulo-hash');
 const { MultiNodeCacheSimulation } = require('./cache/multi-node-cache-simulation');
 const { createVisualArray } = require('./array/visual-array');
@@ -33,8 +33,8 @@ const cacheDemoCommands = (simulation) => {
 
 export async function consistentHashDemo() {
     const player = new SimufastPlayer();
-    const chRing = new ConsistentHashRing(player);
-    const simulation = new MultiNodeCacheSimulation(chRing);
+    const consistentHash = new ConsistentHash(player);
+    const simulation = new MultiNodeCacheSimulation(consistentHash);
     const commands = cacheDemoCommands(simulation);
     await player.experiment({
         name: 'Consistent Hash',

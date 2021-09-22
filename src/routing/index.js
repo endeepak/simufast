@@ -1,7 +1,7 @@
 const { ModuloHash } = require('./modulo-hash');
-const { ConsistentHashRing } = require('./consistent-hash-ring');
+const { ConsistentHash } = require('./consistent-hash');
 
 module.exports = {
     ModuloHash,
-    ConsistentHashRing
+    ConsistentHash
 }

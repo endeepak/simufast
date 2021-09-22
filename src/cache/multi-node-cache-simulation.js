@@ -34,7 +34,7 @@ export class MultiNodeCacheSimulation {
     }
 
     async getOrFetch(key, valueFetcher) {
-        // this.log(`Route key: ${key}`);
+        // this.log(`Routing key: ${key}`);
         const nodeName = await this.nodeDecider.getNodeForKey(key);
         const node = this.nodes[nodeName];
         const result = await node.getOrFetch(key, valueFetcher);

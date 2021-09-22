@@ -60,7 +60,7 @@ export class ModuloHash {
     }
 
     async getNodeForKey(key) {
-        this.log(`Route key: ${key}`);
+        this.log(`Routing key: ${key}`);
         const nodeIndex = getHashCode(MD5(key)) % this.nodes.length;
         const node = this.nodes[nodeIndex];
         await this._visualiseNodeForKey(key, nodeIndex, node);

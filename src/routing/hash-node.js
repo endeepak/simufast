@@ -30,7 +30,7 @@ export class HashNode {
     async highlight() {
         await tweenPromise(Tween.get(this.container)
             .to({ scaleX: 1.5, scaleY: 1.5 }, 1000 / this.speedFn(), Ease.linear)
-            .to({ scaleX: 1.0, scaleY: 1.0 }, 1000 / this.speedFn(), Ease.linear));
+            .to({ scaleX: 1.0, scaleY: 1.0 }, 300 / this.speedFn(), Ease.linear));
     }
 
     async moveTo(point) {
