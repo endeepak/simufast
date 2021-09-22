@@ -48,7 +48,7 @@ Checkout one of the below examples in [JSBin](https://jsbin.com/tazuwuz/edit?htm
 * [Bubble sort](https://jsbin.com/tazuwuz/edit?html,output)
 * [Selection sort](https://jsbin.com/nequjey/edit?html,output)
 * Modulo Hashing vs Consistent Hashing
-  * [Blog](https://tech.endeepak.com/blog/2021/09/22/visual-simulation-of-consitent-hashing)
+  * [Blog](https://tech.endeepak.com/blog/2021/09/22/visual-simulation-of-consistent-hashing)
   * [JSBin](https://jsbin.com/fuvavun/edit?html,output)
 
 ## How to run and test locally
