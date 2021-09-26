@@ -65,7 +65,7 @@ export class SimufastPlayer {
                     </span>
                 </div>
                 <div class="additional-info">
-                    <a class="stats-link ${showStats ? 'open' : 'closed'} ${statsExpanded ? 'expanded' : 'collapsed'}" href="#">Stats</a>
+                    <a class="stats-link ${showStats ? '' : 'hidden'} ${statsExpanded ? 'expanded' : 'collapsed'}" href="#">Stats</a>
                     <span class="attribution" >
                         <i class="fa fa-bolt"></i> by <a class="attribution-link" target="_new" href="https://github.com/endeepak/simufast">Simufast</a>
                     </span>

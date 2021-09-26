@@ -53,6 +53,10 @@
     background: aliceblue;
 }
 
+.simufast-player .hidden {
+    display: none;
+}
+
 .simufast-player .closed {
     display: none;
 }
