@@ -4,8 +4,9 @@ const { Ticker } = require('@createjs/tweenjs');
 export class SimufastPlayer {
     constructor(options) {
         this._options = options || {};
-        this._play = false;
+        this._play = this._options.autoPlay || false;
         this._speed = this._options.speed || 1;
+        this._maxWidth = this._options.maxWidth || 500;
         this._speedOptions = {
             '0.25x': 0.25,
             '0.5x': 0.5,
@@ -42,7 +43,9 @@ export class SimufastPlayer {
         const speedOptionsDom = Object.keys(this._speedOptions).map((name) => {
             return `<option value="${this._speedOptions[name]}" ${this._speedOptions[name] === this._speed ? 'selected' : ''}>${name}</option>`;
         }).join('\n');
-        const statsExpanded = this._options.statsExpanded || false;
+        const showStats = this._options.showStats === false ? false : true;
+        const statsExpanded = showStats && this._options.statsExpanded == true ? true : false;
+
         const dom = `
             <div class="simufast-player">
                 <div class="last-log"></div>
@@ -55,15 +58,14 @@ export class SimufastPlayer {
                         </select>
                     </span>
                     <span class="actions">
-                        <button class="play-pause-button fa fa-play"></button>
+                        <button class="play-pause-button fa ${this._play ? 'fa-pause' : 'fa-play'}"></button>
                     </span>
                     <span class="progress">
                         <span class="progress-text"></span>
-                        <i style="display: none;" class="spinner fa fa-spinner fa-spin"></i>
                     </span>
                 </div>
                 <div class="additional-info">
-                    <a class="stats-link ${statsExpanded ? 'expanded' : 'collapsed'}" href="#">Stats</a>
+                    <a class="stats-link ${showStats ? 'open' : 'closed'} ${statsExpanded ? 'expanded' : 'collapsed'}" href="#">Stats</a>
                     <span class="attribution" >
                         <i class="fa fa-bolt"></i> by <a class="attribution-link" target="_new" href="https://github.com/endeepak/simufast">Simufast</a>
                     </span>
@@ -86,7 +88,7 @@ export class SimufastPlayer {
         this._stats = player.getElementsByClassName('stats')[0];
 
         const playerParentRect = player.parentElement.getBoundingClientRect();
-        this.width = Math.min(playerParentRect.width, 500);
+        this.width = Math.min(playerParentRect.width, this._maxWidth);
         player.style.width = `${this.width}px`;
         this._canvas.width = this.width;
 

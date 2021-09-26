@@ -19,6 +19,34 @@
 </style>
 
 <body>
+    <script>
+        simufast.run((player) => {
+            const consistentHash = new simufast.routing.ConsistentHash(player, {
+                nodeReplicationFactor: 1
+            });
+            const simulation = new simufast.cache.MultiNodeCacheSimulation(consistentHash);
+            const keys = simufast.utils.randStringArray(100);
+            const commands = [
+                () => simulation.addNode("S1"),
+                () => simulation.addNode("S2"),
+                () => simulation.addNode("S3"),
+            ];
+            for (let i = 1; i <= 10; i++) {
+                const key = simufast.utils.getRandomValueFromArray(keys);
+                commands.push(() => simulation.getOrFetch(key, () => `${key}'s value from data source`));
+            }
+            player.experiment({
+                name: 'Consistent Hashing: Basic Concept',
+                drawable: simulation,
+                commands: commands
+            });
+        }, {
+            speed: 0.5,
+            maxWidth: 400,
+            showStats: false,
+            autoPlay: true
+        });
+    </script>
     <p>Simufast Examples</p>
     <script>simufast.demos.consistentHashDemo();</script>
     <br />
