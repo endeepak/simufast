@@ -17,6 +17,7 @@ const routing = require('./routing');
 const cache = require('./cache');
 const utils = require('./utils');
 const array = require('./array');
+const sequenceDiagram = require('./sequence-diagram');
 
 const run = async (fn, options) => {
     const player = new simufast.SimufastPlayer(options);
@@ -30,6 +31,7 @@ module.exports = {
     cache,
     utils,
     array,
+    sequenceDiagram,
     run
 }
 

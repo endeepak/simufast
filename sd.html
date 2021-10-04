@@ -1,0 +1,47 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simufast Examples</title>
+    <link rel="stylesheet" href="./src/simufast.css">
+    <script src="./dist/main.js"></script>
+</head>
+<style>
+    body {
+        background-color: dodgerblue;
+    }
+
+    body>p {
+        text-align: center;
+    }
+</style>
+
+<body>
+    <script>
+        simufast.run((player) => {
+            const sd = new simufast.sequenceDiagram.SequenceDiagram(player, {
+                participants: [
+                    { name: "Browser" },
+                    { name: "Server" }
+                ],
+                steps: [
+                    {
+                        type: 'arrow',
+                        from: 'Browser',
+                        text: 'Hello world!',
+                        to: 'Server'
+                    }
+                ]
+            });
+            player.experiment({
+                name: 'Sequence Diagram',
+                drawable: sd,
+                commands: [(options) => sd.draw(options)]
+            });
+        });
+    </script>
+</body>
+
+</html>
