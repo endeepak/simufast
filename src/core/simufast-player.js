@@ -74,8 +74,11 @@ export class SimufastPlayer {
             </div>
         `;
 
-        document.write(dom);
-        const player = document.querySelector('.simufast-player:last-child');
+        const scripts = document.body.getElementsByTagName('script');
+        const lastScript = scripts[scripts.length - 1];
+        const player = document.createElement('div');
+        player.innerHTML = dom;
+        lastScript.parentNode.insertBefore(player, lastScript);
 
         this._progressText = player.getElementsByClassName('progress-text')[0];
         this._lastLogText = player.getElementsByClassName('last-log')[0];
