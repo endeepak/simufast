@@ -1,6 +1,6 @@
 {
   "name": "simufast",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Simulate fast using visual abstractions",
   "main": "index.js",
   "scripts": {

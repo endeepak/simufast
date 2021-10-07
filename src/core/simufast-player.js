@@ -47,7 +47,6 @@ export class SimufastPlayer {
         const statsExpanded = showStats && this._options.statsExpanded == true ? true : false;
 
         const dom = `
-            <div class="simufast-player">
                 <div class="last-log"></div>
                 <canvas id="canvas"></canvas>
                 <div class="control-bar">
@@ -71,12 +70,12 @@ export class SimufastPlayer {
                     </span>
                     <div class="stats ${statsExpanded ? 'open' : 'closed'}"></div>
                 </div>
-            </div>
         `;
 
-        const scripts = document.body.getElementsByTagName('script');
+        const scripts = document.getElementsByTagName('script');
         const lastScript = scripts[scripts.length - 1];
         const player = document.createElement('div');
+        player.className = 'simufast-player';
         player.innerHTML = dom;
         lastScript.parentNode.insertBefore(player, lastScript);
 

@@ -1,8 +1,7 @@
 const { Container, Text } = require('@createjs/easeljs');
-const { Tween, Ease } = require('@createjs/tweenjs');
+const { Tween, Ease, Ticker } = require('@createjs/tweenjs');
 const { tweenPromise, swap } = require('../utils');
 const { ArrayElement } = require('./array-element');
-
 export class VisualArray {
     constructor(player, values, options) {
         this.stage = player.getStage();
@@ -114,6 +113,7 @@ export class VisualArray {
 
 export const createVisualArray = function (player, array, options) {
     const visualArray = new VisualArray(player, array, options);
+    Ticker.addEventListener("tick", visualArray);
     return new Proxy(visualArray, {
         get: function (target, property) {
             return target._get_(property);
