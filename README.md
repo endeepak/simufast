@@ -6,7 +6,7 @@ The idea of simulation was inspired by the amazing interactive posts like [this]
 
 ## Usage
 
-* Include the simufast JS and CSS files in your html page.
+* Include the simufast JS and CSS files in your HTML page or [markdown](https://www.markdownguide.org/basic-syntax/#html).
 
 ```html
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simufast@0.0.6/src/simufast.css">
@@ -15,7 +15,7 @@ The idea of simulation was inspired by the amazing interactive posts like [this]
 
 > Note: This project is in the proof of concept stage. The APIs may change. Please use specific version of the js and css files to avoid breaking changes.
 
-* Add a script tag with the simulation code. An example of bubble sort simulation is as below
+* Add a `script` tag in HTML `body` with the simulation code. An example of bubble sort simulation is as below
 
 ```html
 <script>
@@ -45,11 +45,15 @@ Checkout one of the below examples in [JSBin](https://jsbin.com/tazuwuz/edit?htm
 
 ## Examples
 
-* [Bubble sort](https://jsbin.com/tazuwuz/edit?html,output)
-* [Selection sort](https://jsbin.com/nequjey/edit?html,output)
-* Modulo Hashing vs Consistent Hashing
-  * [Blog](https://tech.endeepak.com/blog/2021/09/22/visual-simulation-of-consistent-hashing)
+* Visual Array
+  * [Bubble sort](https://jsbin.com/tazuwuz/edit?html,output)
+  * [Selection sort](https://jsbin.com/nequjey/edit?html,output)
+  * [Quick Sort](https://jsbin.com/jezamut/edit?html,output)
+* Consistent Hashing
+  * [Blog](https://tech.endeepak.com/blog/2021/09/22/visual-simulation-of-consistent-hashing) (Embedded in static HTML generated via OctoPress)
   * [JSBin](https://jsbin.com/fuvavun/edit?html,output)
+  * [Blog](https://endeepak.medium.com/a-visual-guide-to-consistent-hashing-e47cdfe70db5) (Embedded in medium.com using CodePen)
+  * [Blog](https://dev.to/endeepak/visual-simulation-of-consistent-hashing-dbd) (Embedded in dev.to using JSFiddle)
 
 ## How to run and test locally
 
